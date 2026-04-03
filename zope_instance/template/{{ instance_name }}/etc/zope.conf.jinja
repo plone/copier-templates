@@ -1,0 +1,40 @@
+%define INSTANCEHOME {{ instance_home }}
+instancehome $INSTANCEHOME
+
+%define CLIENTHOME {{ instance_home }}
+clienthome $CLIENTHOME
+
+debug-mode off
+security-policy-implementation C
+verbose-security off
+
+default-zpublisher-encoding utf-8
+
+{%- if db_storage == "direct" %}
+<zodb_db main>
+    <filestorage>
+        path $CLIENTHOME/var/Data.fs
+        blob-dir $CLIENTHOME/var/blobs
+    </filestorage>
+    mount-point /
+</zodb_db>
+{%- elif db_storage == "relstorage" %}
+<zodb_db main>
+    <relstorage>
+        <postgresql>
+            dsn dbname=plone_{{ project_name | replace('-', '_') }}
+        </postgresql>
+        blob-dir $CLIENTHOME/var/blobs
+        shared-blob-dir false
+    </relstorage>
+    mount-point /
+</zodb_db>
+{%- elif db_storage == "blobs" %}
+<zodb_db main>
+    <filestorage>
+        path $CLIENTHOME/var/Data.fs
+        blob-dir $CLIENTHOME/var/blobs
+    </filestorage>
+    mount-point /
+</zodb_db>
+{%- endif %}

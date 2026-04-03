@@ -1,0 +1,61 @@
+_min_copier_version: "9.0.0"
+_subdirectory: template
+_answers_file: ".copier-answers.zope-instance-{{ instance_name }}.yml"
+
+_jinja_extensions:
+  - copier_template_extensions.TemplateExtensionLoader
+  - extensions.py:ProjectContextHook
+
+_tasks:
+  - "uv run --with tomlkit python3 {{ _copier_conf.src_path }}/tasks.py validate '{{ _copier_conf.dst_path }}'"
+  - "uv run --with tomlkit python3 {{ _copier_conf.src_path }}/tasks.py post_copy '{{ _copier_conf.dst_path }}' '{{ instance_name }}' --port={{ port }}"
+
+# Instance identification
+instance_name:
+  type: str
+  help: "Instance directory name (e.g., instance, instance1, zeo-client1)"
+  default: "instance"
+  validator: "{% if not instance_name %}Instance name is required{% endif %}"
+
+port:
+  type: int
+  help: "HTTP port for this instance"
+  default: 8080
+
+base_path:
+  type: str
+  help: "Absolute base path for deployment (leave empty for relative/dev mode)"
+  default: ""
+
+# Database configuration - read from project context or ask
+db_storage:
+  type: str
+  help: "Database storage backend"
+  default: "{{ project_context.db_storage | default('direct') }}"
+  choices:
+    - "direct"
+    - "relstorage"
+    - "blobs"
+
+# Initial Zope user
+initial_zope_username:
+  type: str
+  help: "Initial Zope admin username"
+  default: "admin"
+
+initial_user_password:
+  type: str
+  help: "Initial Zope admin password"
+  default: "admin"
+  secret: true
+
+# Computed values (hidden from user)
+project_name:
+  type: str
+  default: "{{ project_context.project_name | default('') }}"
+  when: false
+
+instance_home:
+  type: str
+  default: "{% if base_path %}{{ base_path }}/{{ instance_name }}{% else %}{{ instance_name }}{% endif %}"
+  when: false

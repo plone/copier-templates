@@ -77,3 +77,9 @@ def behavior_template(templates_dir):
 def restapi_service_template(templates_dir):
     """Return path to restapi_service template."""
     return templates_dir / "restapi_service"
+
+
+@pytest.fixture
+def zope_instance_template(templates_dir):
+    """Return path to zope_instance template."""
+    return templates_dir / "zope_instance"

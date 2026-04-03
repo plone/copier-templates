@@ -13,6 +13,12 @@ class AddonContextError(CopierTemplateError):
     pass
 
 
+class ProjectContextError(CopierTemplateError):
+    """Raised when no parent project is detected."""
+
+    pass
+
+
 class ValidationError(CopierTemplateError):
     """Raised when validation fails."""
 

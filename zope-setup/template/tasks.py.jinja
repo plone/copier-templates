@@ -9,21 +9,21 @@ def install(c):
 
 
 @task
-def start(c):
-    """Start the Plone instance."""
-    c.run("uv run runwsgi instance/etc/zope.ini")
+def start(c, instance="instance"):
+    """Start a Plone instance."""
+    c.run(f"uv run runwsgi {instance}/etc/zope.ini")
 
 
 @task
-def debug(c):
-    """Start the Plone instance in debug mode."""
-    c.run("uv run runwsgi -d instance/etc/zope.ini")
+def debug(c, instance="instance"):
+    """Start a Plone instance in debug mode."""
+    c.run(f"uv run runwsgi -d {instance}/etc/zope.ini")
 
 
 @task
-def shell(c):
+def shell(c, instance="instance"):
     """Open a Zope debug shell."""
-    c.run("uv run zconsole debug instance/etc/zope.conf")
+    c.run(f"uv run zconsole debug {instance}/etc/zope.conf")
 
 
 @task
@@ -36,7 +36,21 @@ def test(c, verbose=False):
 
 
 @task
-def create_site(c, site_id="Plone"):
+def create_instance(c, name="instance", port=8080, base_path=""):
+    """Create a new Zope instance using the zope_instance template."""
+    cmd = (
+        f"copier copy --trust --defaults "
+        f"--data instance_name={name} "
+        f"--data port={port} "
+    )
+    if base_path:
+        cmd += f"--data base_path={base_path} "
+    cmd += "gh:plone/copier-templates/zope_instance ."
+    c.run(cmd)
+
+
+@task
+def create_site(c, site_id="Plone", instance="instance"):
     """Create a new Plone site."""
     import os
     import tempfile
@@ -65,7 +79,7 @@ print("Created site: SITE_ID")
         f.write(script)
         script_path = f.name
     try:
-        c.run(f"uv run zconsole run instance/etc/zope.conf {script_path}")
+        c.run(f"uv run zconsole run {instance}/etc/zope.conf {script_path}")
     finally:
         os.unlink(script_path)
 

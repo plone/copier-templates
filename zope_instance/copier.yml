@@ -7,8 +7,8 @@ _jinja_extensions:
   - extensions.py:ProjectContextHook
 
 _tasks:
-  - "uv run --with tomlkit python3 {{ _copier_conf.src_path }}/tasks.py validate '{{ _copier_conf.dst_path }}'"
-  - "uv run --with tomlkit python3 {{ _copier_conf.src_path }}/tasks.py post_copy '{{ _copier_conf.dst_path }}' '{{ instance_name }}' --port={{ port }}"
+  - "uv run --with tomlkit python3 {{ _copier_conf.src_path }}/copier_hooks.py validate '{{ _copier_conf.dst_path }}'"
+  - "uv run --with tomlkit python3 {{ _copier_conf.src_path }}/copier_hooks.py post_copy '{{ _copier_conf.dst_path }}' '{{ instance_name }}' --port={{ port }}"
 
 # Instance identification
 instance_name:

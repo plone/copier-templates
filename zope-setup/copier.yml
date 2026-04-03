@@ -13,7 +13,7 @@ _skip_if_exists:
   - README.md
 
 _tasks:
-  - "uv run --with tomlkit python3 {{ _copier_conf.src_path }}/tasks.py update_pyproject '{{ _copier_conf.dst_path }}' --plone-version={{ plone_version }} --distribution={{ distribution }} --db-storage={{ db_storage }}"
+  - "uv run --with tomlkit python3 {{ _copier_conf.src_path }}/copier_hooks.py update_pyproject '{{ _copier_conf.dst_path }}' --plone-version={{ plone_version }} --distribution={{ distribution }} --db-storage={{ db_storage }}"
 
 # Project identification
 project_name:

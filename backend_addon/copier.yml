@@ -6,6 +6,7 @@ _answers_file: .copier-answers.yml
 package_name:
   type: str
   help: "Python package name (e.g., collective.mypackage or mypackage)"
+  default: "{{ _copier_conf.dst_path.name }}"
   validator: "{% if not package_name %}Package name is required{% endif %}"
 
 package_title:

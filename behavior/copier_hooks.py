@@ -104,10 +104,10 @@ def main():
         print(f"ERROR: {e}")
         print("=" * 60)
         print("\nFirst create an addon with:")
-        print("  copier copy gh:plone/copier-templates/backend_addon my-addon")
+        print("  copier copy ~/.copier-templates/plone-copier-templates/backend_addon my-addon")
         print("\nThen run this subtemplate inside that directory:")
         print("  cd my-addon")
-        print("  copier copy gh:plone/copier-templates/behavior .")
+        print("  copier copy ~/.copier-templates/plone-copier-templates/behavior .")
         print("=" * 60 + "\n")
         sys.exit(1)
 

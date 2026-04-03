@@ -41,14 +41,14 @@ uv tool install copier --with copier-template-extensions
 ### Create a Plone Project
 
 ```bash
-copier copy gh:derico-de/copier-templates/zope-setup my-project
+copier copy ~/.copier-templates/plone-copier-templates/zope-setup my-project
 cd my-project
 ```
 
 ### Create a Standalone Addon
 
 ```bash
-copier copy gh:derico-de/copier-templates/backend_addon my-addon
+copier copy ~/.copier-templates/plone-copier-templates/backend_addon my-addon
 cd my-addon
 ```
 
@@ -56,12 +56,12 @@ cd my-addon
 
 ```bash
 # Create the addon
-copier copy gh:derico-de/copier-templates/backend_addon collective.todos \
+copier copy ~/.copier-templates/plone-copier-templates/backend_addon collective.todos \
   --data package_name=collective.todos
 
 # Add zope-setup inside it (project name/title/description auto-detected)
 cd collective.todos
-copier copy gh:derico-de/copier-templates/zope-setup .
+copier copy ~/.copier-templates/plone-copier-templates/zope-setup .
 ```
 
 ### Add Components to an Addon
@@ -72,13 +72,13 @@ Subtemplates must be run from inside an existing addon directory:
 cd my-addon
 
 # Add a content type
-copier copy gh:derico-de/copier-templates/content_type .
+copier copy ~/.copier-templates/plone-copier-templates/content_type .
 
 # Add a behavior
-copier copy gh:derico-de/copier-templates/behavior .
+copier copy ~/.copier-templates/plone-copier-templates/behavior .
 
 # Add a REST API service
-copier copy gh:derico-de/copier-templates/restapi_service .
+copier copy ~/.copier-templates/plone-copier-templates/restapi_service .
 ```
 
 ### Add Additional Zope Instances
@@ -87,7 +87,7 @@ Inside an existing zope-setup project:
 
 ```bash
 cd my-project
-copier copy gh:derico-de/copier-templates/zope_instance . \
+copier copy ~/.copier-templates/plone-copier-templates/zope_instance . \
   --data instance_name=instance2 \
   --data port=8081
 ```
@@ -123,7 +123,7 @@ Creates a complete Plone/Zope project structure with:
 **Example:**
 
 ```bash
-copier copy gh:derico-de/copier-templates/zope-setup my-project \
+copier copy ~/.copier-templates/plone-copier-templates/zope-setup my-project \
   --data project_name=my-project \
   --data plone_version=6.1.1 \
   --data distribution=plone.volto
@@ -154,7 +154,7 @@ Creates a standalone Plone addon package with:
 **Example:**
 
 ```bash
-copier copy gh:derico-de/copier-templates/backend_addon collective.news \
+copier copy ~/.copier-templates/plone-copier-templates/backend_addon collective.news \
   --data package_name=collective.news \
   --data is_headless=false
 ```
@@ -178,7 +178,7 @@ Adds additional Zope instances to an existing zope-setup project. Reads project 
 
 ```bash
 cd my-project
-copier copy gh:derico-de/copier-templates/zope_instance . \
+copier copy ~/.copier-templates/plone-copier-templates/zope_instance . \
   --data instance_name=instance2 \
   --data port=8081
 ```
@@ -207,7 +207,7 @@ Adds a Dexterity content type to an existing addon:
 
 ```bash
 cd my-addon
-copier copy gh:derico-de/copier-templates/content_type . \
+copier copy ~/.copier-templates/plone-copier-templates/content_type . \
   --data content_type_name="News Item" \
   --data package_name=collective.news
 ```
@@ -235,7 +235,7 @@ Adds a Dexterity behavior to an existing addon:
 
 ```bash
 cd my-addon
-copier copy gh:derico-de/copier-templates/behavior . \
+copier copy ~/.copier-templates/plone-copier-templates/behavior . \
   --data behavior_name=IFeatured \
   --data package_name=collective.news
 ```
@@ -265,7 +265,7 @@ Adds a plone.restapi service endpoint to an existing addon:
 
 ```bash
 cd my-addon
-copier copy gh:derico-de/copier-templates/restapi_service . \
+copier copy ~/.copier-templates/plone-copier-templates/restapi_service . \
   --data service_name=analytics \
   --data http_get=true \
   --data http_post=true \
@@ -538,31 +538,31 @@ uv run pytest tests/ --cov=shared --cov-report=html
 
 ```bash
 # 1. Create a new Plone project
-copier copy gh:derico-de/copier-templates/zope-setup my-intranet \
+copier copy ~/.copier-templates/plone-copier-templates/zope-setup my-intranet \
   --data project_name=my-intranet \
   --data plone_version=6.1.1
 
 cd my-intranet
 
 # 2. Create a custom addon
-copier copy gh:derico-de/copier-templates/backend_addon sources/intranet.policy \
+copier copy ~/.copier-templates/plone-copier-templates/backend_addon sources/intranet.policy \
   --data package_name=intranet.policy
 
 cd sources/intranet.policy
 
 # 3. Add a custom content type
-copier copy gh:derico-de/copier-templates/content_type . \
+copier copy ~/.copier-templates/plone-copier-templates/content_type . \
   --data content_type_name="Department" \
   --data content_type_base=Container \
   --data package_name=intranet.policy
 
 # 4. Add a behavior for social features
-copier copy gh:derico-de/copier-templates/behavior . \
+copier copy ~/.copier-templates/plone-copier-templates/behavior . \
   --data behavior_name=ISocialMedia \
   --data package_name=intranet.policy
 
 # 5. Add a REST API endpoint
-copier copy gh:derico-de/copier-templates/restapi_service . \
+copier copy ~/.copier-templates/plone-copier-templates/restapi_service . \
   --data service_name=org-chart \
   --data http_get=true \
   --data package_name=intranet.policy

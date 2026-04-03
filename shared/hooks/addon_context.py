@@ -117,7 +117,7 @@ if __name__ == "__main__":
         print("=" * 60)
         print(f"\n{e}")
         print("\nFirst create an addon with:")
-        print("  copier copy gh:plone/copier-templates/backend_addon my-addon")
+        print("  copier copy ~/.copier-templates/plone-copier-templates/backend_addon my-addon")
         print("\nThen run this subtemplate inside that directory.")
         print("=" * 60 + "\n")
         sys.exit(1)

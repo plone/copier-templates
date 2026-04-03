@@ -96,10 +96,10 @@ def main():
         print(f"ERROR: {e}")
         print("=" * 60)
         print("\nFirst create a project with:")
-        print("  copier copy gh:plone/copier-templates/zope-setup my-project")
+        print("  copier copy ~/.copier-templates/plone-copier-templates/zope-setup my-project")
         print("\nThen run this subtemplate inside that directory:")
         print("  cd my-project")
-        print("  copier copy gh:plone/copier-templates/zope_instance .")
+        print("  copier copy ~/.copier-templates/plone-copier-templates/zope_instance .")
         print("=" * 60 + "\n")
         sys.exit(1)
 

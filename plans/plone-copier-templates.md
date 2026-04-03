@@ -481,7 +481,7 @@ def require_addon_context():
         print("=" * 60)
         print("\nThis template must be run inside an existing backend_addon.")
         print("First create an addon with:")
-        print("  copier copy gh:plone/copier-templates/backend_addon my-addon")
+        print("  copier copy ~/.copier-templates/plone-copier-templates/backend_addon my-addon")
         print("\nThen run this subtemplate inside that directory.")
         print("=" * 60 + "\n")
         sys.exit(1)

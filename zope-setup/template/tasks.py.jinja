@@ -45,7 +45,7 @@ def create_instance(c, name="instance", port=8080, base_path=""):
     )
     if base_path:
         cmd += f"--data base_path={base_path} "
-    cmd += "gh:plone/copier-templates/zope_instance ."
+    cmd += "~/.copier-templates/plone-copier-templates/zope_instance ."
     c.run(cmd)
 
 

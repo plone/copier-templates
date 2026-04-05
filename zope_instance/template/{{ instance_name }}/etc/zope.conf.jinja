@@ -10,7 +10,7 @@ verbose-security off
 
 default-zpublisher-encoding utf-8
 
-{%- if db_storage == "direct" %}
+{%- if db_storage == "instance" %}
 <zodb_db main>
     <filestorage>
         path $CLIENTHOME/var/Data.fs
@@ -22,19 +22,20 @@ default-zpublisher-encoding utf-8
 <zodb_db main>
     <relstorage>
         <postgresql>
-            dsn dbname=plone_{{ project_name | replace('-', '_') }}
+            dsn host={{ pg_host }} port={{ pg_port }} dbname={{ pg_dbname }} user={{ pg_user }}{% if pg_password %} password={{ pg_password }}{% endif %}
         </postgresql>
         blob-dir $CLIENTHOME/var/blobs
         shared-blob-dir false
     </relstorage>
     mount-point /
 </zodb_db>
-{%- elif db_storage == "blobs" %}
+{%- elif db_storage == "zeo" %}
 <zodb_db main>
-    <filestorage>
-        path $CLIENTHOME/var/Data.fs
+    <zeoclient>
+        server {{ zeo_address }}
         blob-dir $CLIENTHOME/var/blobs
-    </filestorage>
+        shared-blob-dir on
+    </zeoclient>
     mount-point /
 </zodb_db>
 {%- endif %}

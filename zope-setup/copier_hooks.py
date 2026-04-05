@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Post-copy tasks for zope-setup template."""
+import subprocess
 import sys
 from pathlib import Path
 
@@ -36,7 +37,7 @@ def update_pyproject(dest_path, plone_version, distribution, db_storage):
         runtime_deps.append("ZEO")
     elif db_storage == "relstorage":
         runtime_deps.extend(["relstorage", "psycopg2"])
-    # "blobs" and "direct" need no extra deps
+    # "instance" needs no extra deps
 
     for dep in runtime_deps:
         updater.add_to_list("project", "dependencies", value=dep)
@@ -66,6 +67,59 @@ def update_pyproject(dest_path, plone_version, distribution, db_storage):
     print(f"Updated pyproject.toml with zope-setup dependencies.")
 
 
+def create_initial_instance(dest_path, db_storage, initial_zope_username="admin",
+                            initial_user_password="admin", zeo_address="localhost:8100",
+                            pg_host="localhost", pg_port="5432",
+                            pg_dbname="", pg_user="plone", pg_password=""):
+    """Invoke zope_instance copier template to create the first instance."""
+    cwd = Path.cwd()
+    dest = Path(dest_path)
+
+    if (cwd / "pyproject.toml").exists():
+        dest = cwd
+    elif not dest.is_absolute():
+        dest = dest.resolve()
+
+    # Skip if instance already exists (e.g. during copier update)
+    if (dest / "instance").exists():
+        print("Initial instance already exists, skipping creation.")
+        return
+
+    template_path = Path.home() / ".copier-templates" / "plone-copier-templates" / "zope_instance"
+
+    cmd = [
+        "copier", "copy", "--trust", "--defaults",
+        "--data", "instance_name=instance",
+        "--data", "port=8080",
+        "--data", f"db_storage={db_storage}",
+        "--data", f"initial_zope_username={initial_zope_username}",
+        "--data", f"initial_user_password={initial_user_password}",
+    ]
+
+    if db_storage == "zeo":
+        cmd.extend(["--data", f"zeo_address={zeo_address}"])
+    elif db_storage == "relstorage":
+        cmd.extend([
+            "--data", f"pg_host={pg_host}",
+            "--data", f"pg_port={pg_port}",
+            "--data", f"pg_dbname={pg_dbname}",
+            "--data", f"pg_user={pg_user}",
+        ])
+        if pg_password:
+            cmd.extend(["--data", f"pg_password={pg_password}"])
+
+    cmd.extend([str(template_path), str(dest)])
+
+    print("Creating initial instance via zope_instance template...")
+    result = subprocess.run(cmd, cwd=str(dest), capture_output=True, text=True)
+    if result.returncode != 0:
+        print(f"Warning: Failed to create initial instance: {result.stderr}")
+    else:
+        print("Initial instance created successfully.")
+        if result.stdout:
+            print(result.stdout)
+
+
 def main():
     """Main entry point — sys.argv dispatch."""
     if len(sys.argv) < 2:
@@ -92,8 +146,33 @@ def main():
             dest_path,
             plone_version=kwargs.get("plone_version", "6.1.1"),
             distribution=kwargs.get("distribution", "plone.volto"),
-            db_storage=kwargs.get("db_storage", "direct"),
+            db_storage=kwargs.get("db_storage", "instance"),
         )
+    elif command == "create_initial_instance":
+        if len(sys.argv) < 3:
+            print("Usage: copier_hooks.py create_initial_instance <dest_path> [--db-storage=X] ...")
+            sys.exit(1)
+
+        dest_path = sys.argv[2]
+        kwargs = {}
+        for arg in sys.argv[3:]:
+            if arg.startswith("--"):
+                key, _, value = arg[2:].partition("=")
+                kwargs[key.replace("-", "_")] = value
+
+        create_initial_instance(
+            dest_path,
+            db_storage=kwargs.get("db_storage", "instance"),
+            initial_zope_username=kwargs.get("initial_zope_username", "admin"),
+            initial_user_password=kwargs.get("initial_user_password", "admin"),
+            zeo_address=kwargs.get("zeo_address", "localhost:8100"),
+            pg_host=kwargs.get("pg_host", "localhost"),
+            pg_port=kwargs.get("pg_port", "5432"),
+            pg_dbname=kwargs.get("pg_dbname", ""),
+            pg_user=kwargs.get("pg_user", "plone"),
+            pg_password=kwargs.get("pg_password", ""),
+        )
+
     else:
         print(f"Unknown command: {command}")
         sys.exit(1)

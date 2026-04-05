@@ -1,9 +1,6 @@
 _min_copier_version: "9.0.0"
 _subdirectory: template
 _answers_file: .copier-answers.zope-setup.yml
-_exclude:
-  - "{% if _copier_operation == 'update' %}instance/inituser{% endif %}"
-
 _jinja_extensions:
   - copier_template_extensions.TemplateExtensionLoader
   - extensions.py:AddonContextHook
@@ -14,6 +11,7 @@ _skip_if_exists:
 
 _tasks:
   - "uv run --with tomlkit python3 {{ _copier_conf.src_path }}/copier_hooks.py update_pyproject '{{ _copier_conf.dst_path }}' --plone-version={{ plone_version }} --distribution={{ distribution }} --db-storage={{ db_storage }}"
+  - "uv run --with tomlkit python3 {{ _copier_conf.src_path }}/copier_hooks.py create_initial_instance '{{ _copier_conf.dst_path }}' --db-storage={{ db_storage }} --initial-zope-username={{ initial_zope_username }} --initial-user-password={{ initial_user_password }}{% if db_storage == 'zeo' %} --zeo-address={{ zeo_address }}{% endif %}{% if db_storage == 'relstorage' %} --pg-host={{ pg_host }} --pg-port={{ pg_port }} --pg-dbname={{ pg_dbname }} --pg-user={{ pg_user }}{% if pg_password %} --pg-password={{ pg_password }}{% endif %}{% endif %}"
 
 # Project identification
 project_name:
@@ -62,11 +60,50 @@ distribution_name:
 db_storage:
   type: str
   help: "Database storage backend"
-  default: "direct"
+  default: "instance"
   choices:
-    - "direct"
+    - "instance"
     - "relstorage"
-    - "blobs"
+    - "zeo"
+
+# ZEO connection settings (passed to zope_instance)
+zeo_address:
+  type: str
+  help: "ZEO server address (host:port)"
+  default: "localhost:8100"
+  when: "{{ db_storage == 'zeo' }}"
+
+# PostgreSQL / RelStorage connection settings (passed to zope_instance)
+pg_host:
+  type: str
+  help: "PostgreSQL host"
+  default: "localhost"
+  when: "{{ db_storage == 'relstorage' }}"
+
+pg_port:
+  type: int
+  help: "PostgreSQL port"
+  default: 5432
+  when: "{{ db_storage == 'relstorage' }}"
+
+pg_dbname:
+  type: str
+  help: "PostgreSQL database name"
+  default: "plone_{{ project_name | replace('-', '_') }}"
+  when: "{{ db_storage == 'relstorage' }}"
+
+pg_user:
+  type: str
+  help: "PostgreSQL user"
+  default: "plone"
+  when: "{{ db_storage == 'relstorage' }}"
+
+pg_password:
+  type: str
+  help: "PostgreSQL password (leave empty for peer auth)"
+  default: ""
+  secret: true
+  when: "{{ db_storage == 'relstorage' }}"
 
 # Author information
 author_name:

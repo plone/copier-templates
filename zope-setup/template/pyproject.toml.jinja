@@ -25,6 +25,9 @@ dependencies = [
 {%- if db_storage == "relstorage" %}
     "RelStorage[postgresql]",
 {%- endif %}
+{%- if db_storage == "zeo" %}
+    "ZEO",
+{%- endif %}
 ]
 
 [project.optional-dependencies]

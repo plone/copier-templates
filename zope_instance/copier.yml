@@ -31,11 +31,50 @@ base_path:
 db_storage:
   type: str
   help: "Database storage backend"
-  default: "{{ project_context.db_storage | default('direct') }}"
+  default: "{{ project_context.db_storage | default('instance') }}"
   choices:
-    - "direct"
+    - "instance"
     - "relstorage"
-    - "blobs"
+    - "zeo"
+
+# ZEO connection settings
+zeo_address:
+  type: str
+  help: "ZEO server address (host:port)"
+  default: "localhost:8100"
+  when: "{{ db_storage == 'zeo' }}"
+
+# PostgreSQL / RelStorage connection settings
+pg_host:
+  type: str
+  help: "PostgreSQL host"
+  default: "localhost"
+  when: "{{ db_storage == 'relstorage' }}"
+
+pg_port:
+  type: int
+  help: "PostgreSQL port"
+  default: 5432
+  when: "{{ db_storage == 'relstorage' }}"
+
+pg_dbname:
+  type: str
+  help: "PostgreSQL database name"
+  default: "plone_{{ project_context.project_name | default('plone') | replace('-', '_') }}"
+  when: "{{ db_storage == 'relstorage' }}"
+
+pg_user:
+  type: str
+  help: "PostgreSQL user"
+  default: "plone"
+  when: "{{ db_storage == 'relstorage' }}"
+
+pg_password:
+  type: str
+  help: "PostgreSQL password (leave empty for peer auth)"
+  default: ""
+  secret: true
+  when: "{{ db_storage == 'relstorage' }}"
 
 # Initial Zope user
 initial_zope_username:

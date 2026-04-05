@@ -24,8 +24,8 @@ port:
 
 base_path:
   type: str
-  help: "Absolute base path for deployment (leave empty for relative/dev mode)"
-  default: ""
+  help: "Base path for instance directory"
+  default: "var/"
 
 # Database configuration - read from project context or ask
 db_storage:

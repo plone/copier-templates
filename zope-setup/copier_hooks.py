@@ -80,17 +80,10 @@ def create_initial_instance(dest_path, db_storage, initial_zope_username="admin"
     elif not dest.is_absolute():
         dest = dest.resolve()
 
-    # Skip if instance already exists (e.g. during copier update)
-    if (dest / "instance").exists():
-        print("Initial instance already exists, skipping creation.")
-        return
-
     template_path = Path.home() / ".copier-templates" / "plone-copier-templates" / "zope_instance"
 
     cmd = [
-        "copier", "copy", "--trust", "--defaults",
-        "--data", "instance_name=instance",
-        "--data", "port=8080",
+        "copier", "copy", "--trust",
         "--data", f"db_storage={db_storage}",
         "--data", f"initial_zope_username={initial_zope_username}",
         "--data", f"initial_user_password={initial_user_password}",
@@ -111,13 +104,9 @@ def create_initial_instance(dest_path, db_storage, initial_zope_username="admin"
     cmd.extend([str(template_path), str(dest)])
 
     print("Creating initial instance via zope_instance template...")
-    result = subprocess.run(cmd, cwd=str(dest), capture_output=True, text=True)
+    result = subprocess.run(cmd, cwd=str(dest))
     if result.returncode != 0:
-        print(f"Warning: Failed to create initial instance: {result.stderr}")
-    else:
-        print("Initial instance created successfully.")
-        if result.stdout:
-            print(result.stdout)
+        print("Warning: Failed to create initial instance.")
 
 
 def main():

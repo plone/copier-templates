@@ -24,8 +24,8 @@ port:
 
 base_path:
   type: str
-  help: "Base path for instance directory"
-  default: "var/"
+  help: "Base directory for runtime instances (relative to project root)"
+  default: "{{ project_context.base_path | default('var') }}"
 
 # Database configuration - read from project context or ask
 db_storage:

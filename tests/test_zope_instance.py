@@ -41,16 +41,16 @@ class TestZopeInstanceCreatesFiles:
     """Test that zope_instance creates expected files."""
 
     def test_creates_instance_directory(self, temp_dir, zope_setup_template, zope_instance_template):
-        """zope_instance creates named instance directory."""
+        """zope_instance creates named instance directory inside base_path."""
         project_dir = _create_project(temp_dir, zope_setup_template)
         run_copier(
             zope_instance_template,
             project_dir,
             data={"instance_name": "instance1", "port": 8081},
         )
-        assert_dir_exists(project_dir / "instance1")
-        assert_dir_exists(project_dir / "instance1/etc")
-        assert_dir_exists(project_dir / "instance1/var")
+        assert_dir_exists(project_dir / "var/instance1")
+        assert_dir_exists(project_dir / "var/instance1/etc")
+        assert_dir_exists(project_dir / "var/instance1/var")
 
     def test_creates_zope_conf(self, temp_dir, zope_setup_template, zope_instance_template):
         """zope_instance creates zope.conf."""
@@ -61,7 +61,7 @@ class TestZopeInstanceCreatesFiles:
             data={"instance_name": "instance1", "port": 8081},
         )
         assert_file_exists(
-            project_dir / "instance1/etc/zope.conf",
+            project_dir / "var/instance1/etc/zope.conf",
             content_contains="instancehome",
         )
 
@@ -74,7 +74,7 @@ class TestZopeInstanceCreatesFiles:
             data={"instance_name": "instance1", "port": 8081},
         )
         assert_file_exists(
-            project_dir / "instance1/etc/zope.ini",
+            project_dir / "var/instance1/etc/zope.ini",
             content_contains="port = 8081",
         )
 
@@ -87,7 +87,7 @@ class TestZopeInstanceCreatesFiles:
             data={"instance_name": "instance1", "port": 8081},
         )
         assert_file_exists(
-            project_dir / "instance1/inituser",
+            project_dir / "var/instance1/inituser",
             content_contains="admin:admin",
         )
 
@@ -103,23 +103,23 @@ class TestZopeInstanceCreatesFiles:
 
 
 class TestZopeInstancePaths:
-    """Test path handling in dev vs deployment mode."""
+    """Test path handling with base_path."""
 
-    def test_relative_paths_by_default(self, temp_dir, zope_setup_template, zope_instance_template):
-        """With empty base_path, instance_home is relative."""
+    def test_default_base_path(self, temp_dir, zope_setup_template, zope_instance_template):
+        """With default base_path (var), instance_home includes var/ prefix."""
         project_dir = _create_project(temp_dir, zope_setup_template)
         run_copier(
             zope_instance_template,
             project_dir,
             data={"instance_name": "instance1", "port": 8081},
         )
-        zope_conf = project_dir / "instance1/etc/zope.conf"
+        zope_conf = project_dir / "var/instance1/etc/zope.conf"
         content = zope_conf.read_text()
-        assert "%define INSTANCEHOME instance1" in content
-        assert "%define CLIENTHOME instance1" in content
+        assert "%define INSTANCEHOME var/instance1" in content
+        assert "%define CLIENTHOME var/instance1" in content
 
-    def test_absolute_paths_with_base_path(self, temp_dir, zope_setup_template, zope_instance_template):
-        """With base_path set, instance_home is absolute."""
+    def test_custom_base_path(self, temp_dir, zope_setup_template, zope_instance_template):
+        """With custom base_path, instance_home and file placement match."""
         project_dir = _create_project(temp_dir, zope_setup_template)
         run_copier(
             zope_instance_template,
@@ -127,13 +127,13 @@ class TestZopeInstancePaths:
             data={
                 "instance_name": "instance1",
                 "port": 8081,
-                "base_path": "/opt/plone/mysite",
+                "base_path": "deploy/instances",
             },
         )
-        zope_conf = project_dir / "instance1/etc/zope.conf"
+        zope_conf = project_dir / "deploy/instances/instance1/etc/zope.conf"
         content = zope_conf.read_text()
-        assert "%define INSTANCEHOME /opt/plone/mysite/instance1" in content
-        assert "%define CLIENTHOME /opt/plone/mysite/instance1" in content
+        assert "%define INSTANCEHOME deploy/instances/instance1" in content
+        assert "%define CLIENTHOME deploy/instances/instance1" in content
 
 
 class TestZopeInstancePort:
@@ -148,7 +148,7 @@ class TestZopeInstancePort:
             data={"instance_name": "instance1"},
         )
         assert_file_exists(
-            project_dir / "instance1/etc/zope.ini",
+            project_dir / "var/instance1/etc/zope.ini",
             content_contains="port = 8080",
         )
 
@@ -161,7 +161,7 @@ class TestZopeInstancePort:
             data={"instance_name": "instance1", "port": 9090},
         )
         assert_file_exists(
-            project_dir / "instance1/etc/zope.ini",
+            project_dir / "var/instance1/etc/zope.ini",
             content_contains="port = 9090",
         )
 
@@ -177,18 +177,18 @@ class TestZopeInstanceDbStorage:
             project_dir,
             data={"instance_name": "instance1", "port": 8081, "db_storage": "relstorage"},
         )
-        zope_conf = project_dir / "instance1/etc/zope.conf"
+        zope_conf = project_dir / "var/instance1/etc/zope.conf"
         assert_file_exists(zope_conf, content_contains="<relstorage>")
 
-    def test_direct_storage(self, temp_dir, zope_setup_template, zope_instance_template):
-        """zope_instance renders direct filestorage config."""
+    def test_instance_storage(self, temp_dir, zope_setup_template, zope_instance_template):
+        """zope_instance renders filestorage config with instance db_storage."""
         project_dir = _create_project(temp_dir, zope_setup_template)
         run_copier(
             zope_instance_template,
             project_dir,
-            data={"instance_name": "instance1", "port": 8081, "db_storage": "direct"},
+            data={"instance_name": "instance1", "port": 8081, "db_storage": "instance"},
         )
-        zope_conf = project_dir / "instance1/etc/zope.conf"
+        zope_conf = project_dir / "var/instance1/etc/zope.conf"
         assert_file_exists(zope_conf, content_contains="<filestorage>")
 
 
@@ -213,17 +213,17 @@ class TestMultipleInstances:
         )
         assert result2.returncode == 0, f"instance2 failed: {result2.stderr}"
 
-        # Both directories exist
-        assert_dir_exists(project_dir / "instance1")
-        assert_dir_exists(project_dir / "instance2")
+        # Both directories exist inside var/
+        assert_dir_exists(project_dir / "var/instance1")
+        assert_dir_exists(project_dir / "var/instance2")
 
         # Each has its own port
         assert_file_exists(
-            project_dir / "instance1/etc/zope.ini",
+            project_dir / "var/instance1/etc/zope.ini",
             content_contains="port = 8081",
         )
         assert_file_exists(
-            project_dir / "instance2/etc/zope.ini",
+            project_dir / "var/instance2/etc/zope.ini",
             content_contains="port = 8082",
         )
 

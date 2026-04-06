@@ -423,9 +423,9 @@ class TestZopeSetupOnAddon:
         assert result.returncode == 0, f"zope-setup failed: {result.stderr}"
 
         # Verify zope-setup files exist
-        assert_dir_exists(pkg_dir / "instance")
-        assert_file_exists(pkg_dir / "instance/etc/zope.conf")
-        assert_file_exists(pkg_dir / "instance/etc/zope.ini")
+        assert_dir_exists(pkg_dir / "var/instance")
+        assert_file_exists(pkg_dir / "var/instance/etc/zope.conf")
+        assert_file_exists(pkg_dir / "var/instance/etc/zope.ini")
         assert_file_exists(pkg_dir / "tasks.py")
         assert_file_exists(pkg_dir / ".copier-answers.zope-setup.yml")
 
@@ -555,7 +555,7 @@ class TestZopeSetupOnAddon:
         # Verify standard structure
         assert_file_exists(project_dir / "pyproject.toml")
         assert_file_exists(project_dir / "tasks.py")
-        assert_dir_exists(project_dir / "instance")
+        assert_dir_exists(project_dir / "var/instance")
         assert_dir_exists(project_dir / "sources")
 
         # Verify install task present

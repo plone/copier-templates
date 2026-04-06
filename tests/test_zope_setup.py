@@ -19,7 +19,7 @@ class TestZopeSetupIsolated:
         # Verify structure
         project_dir = temp_dir / "my-project"
         assert_file_exists(project_dir / "pyproject.toml")
-        assert_dir_exists(project_dir / "instance")
+        assert_dir_exists(project_dir / "var/instance")
         assert_dir_exists(project_dir / "sources")
 
     def test_pyproject_has_project_settings(self, temp_dir, zope_setup_template):
@@ -60,7 +60,7 @@ class TestZopeSetupIsolated:
             data={"project_name": "my-project"},
         )
 
-        zope_conf = temp_dir / "my-project/instance/etc/zope.conf"
+        zope_conf = temp_dir / "my-project/var/instance/etc/zope.conf"
         assert_file_exists(zope_conf, content_contains="<filestorage>")
 
     def test_creates_gitignore(self, temp_dir, zope_setup_template):
@@ -138,7 +138,7 @@ class TestZopeSetupIsolated:
             data={"project_name": "my-project"},
         )
 
-        zope_conf = temp_dir / "my-project/instance/etc/zope.conf"
+        zope_conf = temp_dir / "my-project/var/instance/etc/zope.conf"
         content = zope_conf.read_text()
         assert "temporarystorage" not in content
         assert "temp_folder" not in content
@@ -155,7 +155,7 @@ class TestZopeSetupIsolated:
             },
         )
 
-        zope_conf = temp_dir / "my-project/instance/etc/zope.conf"
+        zope_conf = temp_dir / "my-project/var/instance/etc/zope.conf"
         assert_file_exists(zope_conf, content_contains="<relstorage>")
         assert_file_exists(zope_conf, content_contains="dbname=plone_my_project")
 
@@ -167,7 +167,7 @@ class TestZopeSetupIsolated:
             data={"project_name": "my-project"},
         )
 
-        inituser = temp_dir / "my-project/instance/inituser"
+        inituser = temp_dir / "my-project/var/instance/inituser"
         assert_file_exists(inituser, content_contains="admin:admin")
 
     def test_creates_inituser_with_custom_credentials(self, temp_dir, zope_setup_template):
@@ -182,7 +182,7 @@ class TestZopeSetupIsolated:
             },
         )
 
-        inituser = temp_dir / "my-project/instance/inituser"
+        inituser = temp_dir / "my-project/var/instance/inituser"
         assert_file_exists(inituser, content_contains="manager:secret123")
 
     def test_gitignore_excludes_inituser(self, temp_dir, zope_setup_template):
@@ -194,7 +194,7 @@ class TestZopeSetupIsolated:
         )
 
         gitignore = temp_dir / "my-project/.gitignore"
-        assert_file_exists(gitignore, content_contains="instance/inituser")
+        assert_file_exists(gitignore, content_contains="var/*/inituser")
 
     def test_creates_copier_answers_file(self, temp_dir, zope_setup_template):
         """Zope-setup creates copier answers file."""

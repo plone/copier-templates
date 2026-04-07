@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Utilities for updating XML configuration files."""
 import re
+import xml.etree.ElementTree as ET
 from pathlib import Path
 
 
@@ -233,5 +234,129 @@ class TypesXMLUpdater:
 
     def save(self) -> None:
         """Save changes to the file."""
+        if self._modified and self._content is not None:
+            self.path.write_text(self._content)
+
+
+class MetadataXMLUpdater:
+    """Reads and updates profiles/default/metadata.xml version."""
+
+    def __init__(self, path: Path | str):
+        self.path = Path(path)
+
+    def get_version(self) -> str | None:
+        """Return the current profile version string, or None if not found."""
+        if not self.path.exists():
+            return None
+        try:
+            tree = ET.parse(self.path)
+            version_el = tree.find("version")
+            if version_el is not None and version_el.text:
+                return version_el.text.strip()
+        except ET.ParseError:
+            pass
+        return None
+
+    def set_version(self, new_version: str) -> None:
+        """Update the profile version in metadata.xml."""
+        if not self.path.exists():
+            return
+        content = self.path.read_text()
+        updated = re.sub(
+            r"(<version>)\s*\S+\s*(</version>)",
+            rf"\g<1>{new_version}\g<2>",
+            content,
+        )
+        if updated != content:
+            self.path.write_text(updated)
+
+
+class UpgradeZCMLUpdater:
+    """Manages upgrade step entries in upgrades/configure.zcml."""
+
+    TEMPLATE = '''\
+<configure
+    xmlns="http://namespaces.zope.org/zope"
+    xmlns:genericsetup="http://namespaces.zope.org/genericsetup"
+    i18n_domain="{package_name}">
+
+</configure>
+'''
+
+    STEP_TEMPLATE = '''\
+  <genericsetup:upgradeStep
+      title="{title}"
+      description="{description}"
+      source="{source}"
+      destination="{destination}"
+      handler=".{handler_module}.{handler_function}"
+      profile="{package_name}:default"
+      />
+'''
+
+    def __init__(self, path: Path | str):
+        self.path = Path(path)
+        self._content = None
+        self._modified = False
+
+    def load(self) -> str:
+        if self._content is None:
+            if self.path.exists():
+                self._content = self.path.read_text()
+            else:
+                self._content = ""
+        return self._content
+
+    def create_if_missing(self, package_name: str) -> None:
+        """Create the file with initial structure if it doesn't exist."""
+        if not self.path.exists():
+            self.path.parent.mkdir(parents=True, exist_ok=True)
+            self._content = self.TEMPLATE.format(package_name=package_name)
+            self._modified = True
+
+    def has_upgrade_step(self, source: str, destination: str) -> bool:
+        """Check if an upgrade step from source to destination already exists."""
+        content = self.load()
+        pattern = rf'source\s*=\s*["\']\.?{re.escape(source)}["\']'
+        dest_pattern = rf'destination\s*=\s*["\']\.?{re.escape(destination)}["\']'
+        return bool(re.search(pattern, content)) and bool(re.search(dest_pattern, content))
+
+    def add_upgrade_step(
+        self,
+        title: str,
+        description: str,
+        source: str,
+        destination: str,
+        handler_module: str,
+        handler_function: str,
+        package_name: str,
+    ) -> None:
+        """Add an upgrade step entry before the closing </configure> tag."""
+        if self.has_upgrade_step(source, destination):
+            return
+
+        content = self.load()
+        if not content:
+            return
+
+        step_entry = self.STEP_TEMPLATE.format(
+            title=title,
+            description=description,
+            source=source,
+            destination=destination,
+            handler_module=handler_module,
+            handler_function=handler_function,
+            package_name=package_name,
+        )
+
+        closing_tag = "</configure>"
+        if closing_tag in content:
+            self._content = content.replace(
+                closing_tag,
+                f"{step_entry}\n{closing_tag}",
+            )
+            self._modified = True
+
+    def save(self) -> None:
         if self._modified and self._content is not None:
             self.path.write_text(self._content)

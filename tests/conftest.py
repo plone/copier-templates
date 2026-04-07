@@ -83,3 +83,9 @@ def restapi_service_template(templates_dir):
 def zope_instance_template(templates_dir):
     """Return path to zope_instance template."""
     return templates_dir / "zope_instance"
+
+
+@pytest.fixture
+def upgrade_step_template(templates_dir):
+    """Return path to upgrade_step template."""
+    return templates_dir / "upgrade_step"

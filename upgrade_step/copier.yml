@@ -1,0 +1,55 @@
+_min_copier_version: "9.0.0"
+_subdirectory: template
+_answers_file: .copier-answers.upgrade-step.yml
+
+_jinja_extensions:
+  - copier_template_extensions.TemplateExtensionLoader
+  - extensions.py:AddonContextHook
+
+_tasks:
+  - command: "uv run --with tomlkit python3 {{ _copier_conf.src_path }}/copier_hooks.py validate '{{ _copier_conf.dst_path }}'"
+    when: "{{ _copier_conf.operation == 'copy' }}"
+  - "uv run --with tomlkit python3 {{ _copier_conf.src_path }}/copier_hooks.py post_copy '{{ _copier_conf.dst_path }}' '{{ upgrade_step_title }}' '{{ upgrade_step_description }}' '{{ source_version }}' '{{ destination_version }}'"
+
+# Upgrade step title
+upgrade_step_title:
+  type: str
+  help: "Upgrade step title (e.g., 'Add catalog index', 'Migrate content')"
+  validator: "{% if not upgrade_step_title %}Upgrade step title is required{% endif %}"
+
+upgrade_step_description:
+  type: str
+  help: "Short description of the upgrade step"
+  default: "A custom upgrade step"
+
+# Package info - read from parent addon via AddonContextHook
+package_name:
+  type: str
+  help: "Parent addon package name"
+
+package_folder:
+  type: str
+  help: "Parent addon package folder (e.g., collective/mypackage)"
+  default: "{{ package_name | replace('.', '/') }}"
+
+# Profile versions - current_profile_version injected by AddonContextHook
+source_version:
+  type: str
+  help: "Source profile version (current version)"
+  default: "{{ current_profile_version | default('1000') }}"
+
+destination_version:
+  type: str
+  help: "Destination profile version (new version)"
+  default: "{{ (source_version | int + 1) | string }}"
+
+# Computed values
+handler_module:
+  type: str
+  default: "{{ upgrade_step_title | lower | replace(' ', '_') | replace('-', '_') }}"
+  when: false
+
+handler_function:
+  type: str
+  default: "{{ handler_module }}"
+  when: false

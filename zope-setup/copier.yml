@@ -4,6 +4,7 @@ _answers_file: .copier-answers.zope-setup.yml
 _jinja_extensions:
   - copier_template_extensions.TemplateExtensionLoader
   - extensions.py:AddonContextHook
+  - extensions.py:PloneVersionsHook
 
 _skip_if_exists:
   - pyproject.toml
@@ -37,11 +38,8 @@ project_description:
 plone_version:
   type: str
   help: "Plone version to use"
-  default: "6.1.1"
-  choices:
-    - "6.1.1"
-    - "6.1.0"
-    - "6.0.13"
+  default: "{{ plone_versions_full[0] }}"
+  choices: "{{ plone_versions_full }}"
 
 distribution:
   type: str

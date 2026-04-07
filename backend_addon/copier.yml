@@ -1,6 +1,9 @@
 _min_copier_version: "9.0.0"
 _subdirectory: template
 _answers_file: .copier-answers.yml
+_jinja_extensions:
+  - copier_template_extensions.TemplateExtensionLoader
+  - extensions.py:PloneVersionsHook
 
 # Package identification
 package_name:
@@ -23,10 +26,8 @@ package_description:
 plone_version:
   type: str
   help: "Minimum Plone version supported"
-  default: "6.1"
-  choices:
-    - "6.1"
-    - "6.0"
+  default: "{{ plone_versions_minor[0] }}"
+  choices: "{{ plone_versions_minor }}"
 
 is_headless:
   type: bool

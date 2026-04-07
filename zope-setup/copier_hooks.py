@@ -36,7 +36,7 @@ def update_pyproject(dest_path, plone_version, distribution, db_storage, base_pa
     if db_storage == "zeo":
         runtime_deps.append("ZEO")
     elif db_storage == "relstorage":
-        runtime_deps.extend(["relstorage", "psycopg2"])
+        runtime_deps.extend(["relstorage", "psycopg2-binary"])
     # "instance" needs no extra deps
 
     for dep in runtime_deps:
@@ -46,7 +46,7 @@ def update_pyproject(dest_path, plone_version, distribution, db_storage, base_pa
     for dep in ["invoke", "watchdog"]:
         updater.add_to_list("project", "optional-dependencies", "dev", value=dep)
 
-    # 3. Ensure [tool.uv] and add constraint-dependencies
+    # 3. Ensure [tool.uv] and add constraint-dependencies / override-dependencies
     updater.ensure_section("tool", "uv")
     constraint = f"Products.CMFPlone=={plone_version}"
     updater.add_to_list("tool", "uv", "constraint-dependencies", value=constraint)

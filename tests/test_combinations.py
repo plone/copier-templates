@@ -417,6 +417,7 @@ class TestZopeSetupOnAddon:
             pkg_dir,
             data={
                 "distribution": "plone.classicui",
+                "plone_version": "6.1.1",
             },
         )
         assert result.returncode == 0, f"zope-setup failed: {result.stderr}"
@@ -547,7 +548,7 @@ class TestZopeSetupOnAddon:
         result = run_copier(
             zope_setup_template,
             project_dir,
-            data={"project_name": "my-project"},
+            data={"project_name": "my-project", "plone_version": "6.1.1"},
         )
         assert result.returncode == 0, f"zope-setup failed: {result.stderr}"
 

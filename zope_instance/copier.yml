@@ -2,6 +2,11 @@ _min_copier_version: "9.0.0"
 _subdirectory: template
 _answers_file: ".copier-answers.zope-instance-{{ instance_name }}.yml"
 
+_plonecli:
+  type: sub
+  parent: zope-setup
+  description: "Add a Zope instance configuration"
+
 _jinja_extensions:
   - copier_template_extensions.TemplateExtensionLoader
   - extensions.py:ProjectContextHook

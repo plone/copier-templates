@@ -62,10 +62,10 @@ def update_pyproject(dest_path, plone_version, distribution, db_storage, base_pa
         updater.set_addon_setting("zope_setup", True)
         package_name = addon_context.get("package_name", "")
         print(f"Detected addon context: {package_name}")
-        print(f"Registered zope_setup in addon settings.")
+        print("Registered zope_setup in addon settings.")
 
     updater.save()
-    print(f"Updated pyproject.toml with zope-setup dependencies.")
+    print("Updated pyproject.toml with zope-setup dependencies.")
 
 
 def create_initial_instance(dest_path, db_storage, base_path="var",
@@ -82,10 +82,10 @@ def create_initial_instance(dest_path, db_storage, base_path="var",
     elif not dest.is_absolute():
         dest = dest.resolve()
 
-    template_path = Path.home() / ".copier-templates" / "plone-copier-templates" / "zope_instance"
+    template_path = Path(__file__).resolve().parent.parent / "zope_instance"
 
     cmd = [
-        "copier", "copy", "--trust",
+        "copier", "copy", "--trust", "--defaults", "--overwrite",
         "--data", f"db_storage={db_storage}",
         "--data", f"base_path={base_path}",
         "--data", f"initial_zope_username={initial_zope_username}",

@@ -138,6 +138,59 @@ package_name = "collective.mypackage"
 package_title = "Collective Mypackage"
 ```
 
+## plonecli Integration (`_plonecli` metadata)
+
+Templates declare their role via a `_plonecli` section in `copier.yml`. This allows [plonecli](https://github.com/derico-de/plonecli) to discover templates dynamically — no hardcoded lists needed.
+
+### Metadata fields
+
+| Field       | Type         | Required | Description                                          |
+|-------------|--------------|----------|------------------------------------------------------|
+| `type`      | `str`        | yes      | `"main"` (top-level) or `"sub"` (added to existing)  |
+| `parent`    | `str`        | for subs | Parent template's directory name (e.g. `backend_addon`) |
+| `aliases`   | `list[str]`  | no       | Alternative names users can type (e.g. `["addon"]`)  |
+| `description` | `str`      | no       | One-line summary shown in `plonecli -l`              |
+
+### Examples
+
+**Main template** (`backend_addon/copier.yml`):
+
+```yaml
+_plonecli:
+  type: main
+  aliases:
+    - addon
+  description: "Create a Plone backend addon package"
+```
+
+**Subtemplate** (`content_type/copier.yml`):
+
+```yaml
+_plonecli:
+  type: sub
+  parent: backend_addon
+  description: "Add a Dexterity content type"
+```
+
+**Another subtemplate** (`zope_instance/copier.yml`):
+
+```yaml
+_plonecli:
+  type: sub
+  parent: project
+  description: "Add a Zope instance configuration"
+```
+
+### Adding a new template
+
+To make a new template available in plonecli:
+
+1. Create the template directory with a `copier.yml`
+2. Add the `_plonecli` section with at least `type` (and `parent` for subtemplates)
+3. That's it — plonecli discovers it automatically on next run
+
+Templates without a `_plonecli` section are ignored by plonecli but can still be used directly with `copier copy`.
+
 ## Development
 
 ### Setup

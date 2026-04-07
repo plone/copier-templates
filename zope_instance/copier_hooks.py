@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """Post-copy tasks for zope_instance template."""
 import sys
-import tomllib
 from pathlib import Path
 
 # Add shared module to path

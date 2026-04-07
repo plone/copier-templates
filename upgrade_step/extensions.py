@@ -1,9 +1,9 @@
 """Jinja2 extensions for the upgrade_step template."""
 
 import sys
-import tomllib
 from pathlib import Path
 
+import tomllib
 from copier_template_extensions import ContextHook
 
 # Ensure shared package is importable
@@ -11,7 +11,7 @@ _repo_root = Path(__file__).resolve().parent.parent
 if str(_repo_root) not in sys.path:
     sys.path.insert(0, str(_repo_root))
 
-from shared.utils.xml_updater import MetadataXMLUpdater
+from shared.utils.xml_updater import MetadataXMLUpdater  # noqa: E402
 
 
 class AddonContextHook(ContextHook):

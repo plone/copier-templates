@@ -1,7 +1,6 @@
 """Pytest configuration and shared fixtures for copier-templates tests."""
 import os
 import shutil
-import sys
 import tempfile
 from pathlib import Path
 

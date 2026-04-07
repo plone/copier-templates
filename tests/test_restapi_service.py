@@ -1,6 +1,5 @@
 """Tests for restapi_service subtemplate."""
 import pytest
-
 from helpers import assert_file_exists, read_toml, run_copier
 
 

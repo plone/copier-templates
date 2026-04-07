@@ -1,6 +1,5 @@
 """Tests for upgrade_step subtemplate."""
 import pytest
-
 from helpers import assert_file_exists, read_toml, run_copier
 
 

@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """Detect parent project context for zope_instance subtemplate."""
 import sys
-import tomllib
 from pathlib import Path
 from typing import Any
 
+import tomllib
 from exceptions import ProjectContextError
 
 

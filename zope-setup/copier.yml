@@ -1,6 +1,12 @@
 _min_copier_version: "9.0.0"
 _subdirectory: template
 _answers_file: .copier-answers.zope-setup.yml
+
+_plonecli:
+  type: main
+  aliases:
+    - project
+  description: "Create a Plone/Zope project structure"
 _jinja_extensions:
   - copier_template_extensions.TemplateExtensionLoader
   - extensions.py:AddonContextHook

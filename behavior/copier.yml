@@ -2,6 +2,11 @@ _min_copier_version: "9.0.0"
 _subdirectory: template
 _answers_file: .copier-answers.behavior.yml
 
+_plonecli:
+  type: sub
+  parent: backend_addon
+  description: "Add a Dexterity behavior"
+
 _tasks:
   - command: "uv run --with tomlkit python3 {{ _copier_conf.src_path }}/copier_hooks.py validate '{{ _copier_conf.dst_path }}'"
     when: "{{ _copier_conf.operation == 'copy' }}"

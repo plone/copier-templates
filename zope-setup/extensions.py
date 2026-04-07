@@ -1,9 +1,9 @@
 """Jinja2 extensions for the zope-setup template."""
 
 import sys
-import tomllib
 from pathlib import Path
 
+import tomllib
 from copier_template_extensions import ContextHook
 
 # Ensure shared package is importable
@@ -11,7 +11,7 @@ _repo_root = Path(__file__).resolve().parent.parent
 if str(_repo_root) not in sys.path:
     sys.path.insert(0, str(_repo_root))
 
-from shared.utils.plone_versions import fetch_plone_versions, get_major_minor_versions
+from shared.utils.plone_versions import fetch_plone_versions, get_major_minor_versions  # noqa: E402
 
 
 class PloneVersionsHook(ContextHook):

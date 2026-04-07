@@ -1,6 +1,5 @@
 """Tests for content_type subtemplate."""
 import pytest
-
 from helpers import assert_file_exists, read_toml, run_copier
 
 

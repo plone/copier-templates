@@ -1,5 +1,4 @@
 """Tests for zope_instance template."""
-import pytest
 
 from helpers import assert_dir_exists, assert_file_exists, read_toml, run_copier
 

@@ -145,7 +145,7 @@ def post_copy(dest_path: str, content_type_name: str, content_type_description: 
         if not parent_updater.has_include(".content"):
             parent_updater.add_include(".content")
             parent_updater.save()
-            print(f"Added <include package=\".content\" /> to parent configure.zcml.")
+            print("Added <include package=\".content\" /> to parent configure.zcml.")
 
 
 def main():

@@ -73,7 +73,7 @@ def post_copy(dest_path: str, service_name: str) -> None:
             if not zcml_updater.has_include(".services"):
                 zcml_updater.add_include(".services")
                 zcml_updater.save()
-                print(f"Added <include package=\".services\" /> to parent configure.zcml.")
+                print("Added <include package=\".services\" /> to parent configure.zcml.")
 
 
 def main():

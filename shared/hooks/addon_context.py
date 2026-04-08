@@ -6,6 +6,7 @@ from typing import Any
 
 import tomllib
 from exceptions import AddonContextError
+from hooks.legacy_context import find_legacy_addon_context
 
 
 def find_addon_context(start_path: Path | None = None) -> dict[str, Any] | None:
@@ -13,6 +14,7 @@ def find_addon_context(start_path: Path | None = None) -> dict[str, Any] | None:
     Find parent addon context by looking for:
     1. .copier-answers.backend-addon.*.yml file in current directory
     2. [tool.plone.backend_addon.settings] section in pyproject.toml
+    3. Legacy files: bobtemplate.cfg, setup.py, or older pyproject.toml
 
     Args:
         start_path: Directory to search in (defaults to current directory)
@@ -46,6 +48,14 @@ def find_addon_context(start_path: Path | None = None) -> dict[str, Any] | None:
         settings = _read_addon_settings(pyproject_path)
         if settings:
             return settings
+
+    # Fallback: try legacy detection (bobtemplate.cfg, setup.py, older pyproject.toml)
+    legacy = find_legacy_addon_context(start_path)
+    if legacy:
+        source = legacy.pop("_legacy_source", "unknown")
+        print(f"Detected legacy addon package from {source}.")
+        print("Consider running the backend_addon template to modernize this package.")
+        return legacy
 
     return None
 

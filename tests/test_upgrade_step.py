@@ -54,18 +54,64 @@ class TestUpgradeStepCreation:
         return pkg_dir
 
     def test_creates_handler_module(self, addon_dir, upgrade_step_template):
-        """Upgrade step creates handler Python module."""
+        """Upgrade step creates versioned handler Python module."""
         run_copier(
             upgrade_step_template,
             addon_dir,
-            data={"upgrade_step_title": "Add catalog index"},
+            data={
+                "upgrade_step_title": "Add catalog index",
+                "source_version": "1000",
+                "destination_version": "1001",
+            },
         )
 
         handler = (
             addon_dir
-            / "src/collective/mypackage/upgrades/add_catalog_index.py"
+            / "src/collective/mypackage/upgrades/v1001.py"
         )
-        assert_file_exists(handler, content_contains="def add_catalog_index")
+        assert_file_exists(handler, content_contains="def upgrade")
+
+    def test_creates_per_step_zcml(self, addon_dir, upgrade_step_template):
+        """Upgrade step creates per-step ZCML file."""
+        run_copier(
+            upgrade_step_template,
+            addon_dir,
+            data={
+                "upgrade_step_title": "Add catalog index",
+                "source_version": "1000",
+                "destination_version": "1001",
+            },
+        )
+
+        step_zcml = (
+            addon_dir
+            / "src/collective/mypackage/upgrades/1001.zcml"
+        )
+        assert_file_exists(step_zcml, content_contains=[
+            "genericsetup:upgradeStep",
+            'source="1000"',
+            'destination="1001"',
+            'handler=".v1001.upgrade"',
+            'profile="collective.mypackage:default"',
+        ])
+
+    def test_creates_per_step_profile_dir(self, addon_dir, upgrade_step_template):
+        """Upgrade step creates per-step profile directory with metadata.txt."""
+        run_copier(
+            upgrade_step_template,
+            addon_dir,
+            data={
+                "upgrade_step_title": "Add catalog index",
+                "source_version": "1000",
+                "destination_version": "1001",
+            },
+        )
+
+        metadata = (
+            addon_dir
+            / "src/collective/mypackage/upgrades/1001/metadata.txt"
+        )
+        assert metadata.exists()
 
     def test_creates_upgrades_init(self, addon_dir, upgrade_step_template):
         """Upgrade step creates upgrades __init__.py."""
@@ -83,12 +129,16 @@ class TestUpgradeStepCreation:
         run_copier(
             upgrade_step_template,
             addon_dir,
-            data={"upgrade_step_title": "Add catalog index"},
+            data={
+                "upgrade_step_title": "Add catalog index",
+                "source_version": "1000",
+                "destination_version": "1001",
+            },
         )
 
         handler = (
             addon_dir
-            / "src/collective/mypackage/upgrades/add_catalog_index.py"
+            / "src/collective/mypackage/upgrades/v1001.py"
         )
         assert_file_exists(handler, content_contains=[
             "import logging",
@@ -109,7 +159,7 @@ class TestUpgradeStepCreation:
 
         handler = (
             addon_dir
-            / "src/collective/mypackage/upgrades/add_catalog_index.py"
+            / "src/collective/mypackage/upgrades/v1001.py"
         )
         assert_file_exists(handler, content_contains="1000")
 
@@ -171,8 +221,8 @@ class TestUpgradeStepIntegration:
         metadata = addon_dir / "src/my/pkg/profiles/default/metadata.xml"
         assert_file_exists(metadata, content_contains="<version>1001</version>")
 
-    def test_creates_upgrade_zcml(self, addon_dir, upgrade_step_template):
-        """Upgrade step creates upgrades/configure.zcml with registration."""
+    def test_creates_upgrade_configure_zcml(self, addon_dir, upgrade_step_template):
+        """Upgrade step creates upgrades/configure.zcml with file include."""
         run_copier(
             upgrade_step_template,
             addon_dir,
@@ -185,10 +235,29 @@ class TestUpgradeStepIntegration:
 
         zcml = addon_dir / "src/my/pkg/upgrades/configure.zcml"
         assert_file_exists(zcml, content_contains=[
+            '<include file="1001.zcml" />',
+        ])
+
+    def test_creates_per_step_zcml_with_registration(
+        self, addon_dir, upgrade_step_template
+    ):
+        """Per-step ZCML contains the upgradeStep registration."""
+        run_copier(
+            upgrade_step_template,
+            addon_dir,
+            data={
+                "upgrade_step_title": "Add catalog index",
+                "source_version": "1000",
+                "destination_version": "1001",
+            },
+        )
+
+        step_zcml = addon_dir / "src/my/pkg/upgrades/1001.zcml"
+        assert_file_exists(step_zcml, content_contains=[
             "genericsetup:upgradeStep",
             'source="1000"',
             'destination="1001"',
-            'handler=".add_catalog_index.add_catalog_index"',
+            'handler=".v1001.upgrade"',
             'profile="my.pkg:default"',
         ])
 
@@ -207,8 +276,10 @@ class TestMultipleUpgradeSteps:
         )
         return pkg_dir
 
-    def test_second_step_appends_to_zcml(self, addon_dir, upgrade_step_template):
-        """Second upgrade step appends to existing configure.zcml."""
+    def test_second_step_adds_include_to_zcml(
+        self, addon_dir, upgrade_step_template
+    ):
+        """Second upgrade step adds its include to configure.zcml."""
         # First upgrade step
         run_copier(
             upgrade_step_template,
@@ -233,16 +304,14 @@ class TestMultipleUpgradeSteps:
 
         zcml = addon_dir / "src/my/pkg/upgrades/configure.zcml"
         assert_file_exists(zcml, content_contains=[
-            'source="1000"',
-            'destination="1001"',
-            'source="1001"',
-            'destination="1002"',
+            '<include file="1001.zcml" />',
+            '<include file="1002.zcml" />',
         ])
 
-    def test_second_step_creates_separate_handler(
+    def test_second_step_creates_separate_files(
         self, addon_dir, upgrade_step_template
     ):
-        """Each upgrade step gets its own handler module."""
+        """Each upgrade step gets its own handler, zcml, and profile dir."""
         run_copier(
             upgrade_step_template,
             addon_dir,
@@ -262,10 +331,18 @@ class TestMultipleUpgradeSteps:
             },
         )
 
-        handler1 = addon_dir / "src/my/pkg/upgrades/add_catalog_index.py"
-        handler2 = addon_dir / "src/my/pkg/upgrades/migrate_content.py"
-        assert_file_exists(handler1, content_contains="def add_catalog_index")
-        assert_file_exists(handler2, content_contains="def migrate_content")
+        handler1 = addon_dir / "src/my/pkg/upgrades/v1001.py"
+        handler2 = addon_dir / "src/my/pkg/upgrades/v1002.py"
+        assert_file_exists(handler1, content_contains="def upgrade")
+        assert_file_exists(handler2, content_contains="def upgrade")
+
+        step_zcml1 = addon_dir / "src/my/pkg/upgrades/1001.zcml"
+        step_zcml2 = addon_dir / "src/my/pkg/upgrades/1002.zcml"
+        assert_file_exists(step_zcml1, content_contains='destination="1001"')
+        assert_file_exists(step_zcml2, content_contains='destination="1002"')
+
+        assert (addon_dir / "src/my/pkg/upgrades/1001/metadata.txt").exists()
+        assert (addon_dir / "src/my/pkg/upgrades/1002/metadata.txt").exists()
 
     def test_metadata_version_is_latest(self, addon_dir, upgrade_step_template):
         """After multiple steps, metadata.xml has the latest version."""

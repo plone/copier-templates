@@ -4,10 +4,9 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def {{ handler_function }}(context):
+def upgrade(context):
     """{{ upgrade_step_description }}
 
     Upgrade from profile version {{ source_version }} to {{ destination_version }}.
     """
     logger.info("Running upgrade step: {{ upgrade_step_title }}")
-    # Add your upgrade logic here

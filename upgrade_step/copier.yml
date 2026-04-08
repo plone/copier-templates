@@ -47,14 +47,3 @@ destination_version:
   type: str
   help: "Destination profile version (new version)"
   default: "{{ (source_version | int + 1) | string }}"
-
-# Computed values
-handler_module:
-  type: str
-  default: "{{ upgrade_step_title | lower | replace(' ', '_') | replace('-', '_') }}"
-  when: false
-
-handler_function:
-  type: str
-  default: "{{ handler_module }}"
-  when: false

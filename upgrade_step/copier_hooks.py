@@ -58,10 +58,6 @@ def post_copy(
         print(f"Warning: pyproject.toml not found at {pyproject_path}")
         return
 
-    # Compute handler values
-    handler_module = upgrade_step_title.lower().replace(" ", "_").replace("-", "_")
-    handler_function = handler_module
-
     # Get package info from pyproject.toml
     updater = PyprojectUpdater(pyproject_path)
     addon_settings = updater.get_addon_settings()
@@ -98,28 +94,21 @@ def post_copy(
     updater.save()
     print(f"Registered upgrade step '{upgrade_step_title}' in addon settings.")
 
-    # 2. Update upgrades/configure.zcml with upgrade step entry
+    # 2. Add include for per-step ZCML in upgrades/configure.zcml
     zcml_path = dest / f"src/{package_folder}/upgrades/configure.zcml"
     zcml_updater = UpgradeZCMLUpdater(zcml_path)
     zcml_updater.create_if_missing(package_name)
-    if not zcml_updater.has_upgrade_step(source_version, destination_version):
-        zcml_updater.add_upgrade_step(
-            title=upgrade_step_title,
-            description=upgrade_step_description,
-            source=source_version,
-            destination=destination_version,
-            handler_module=handler_module,
-            handler_function=handler_function,
-            package_name=package_name,
-        )
+    step_zcml = f"{destination_version}.zcml"
+    if not zcml_updater.has_file_include(step_zcml):
+        zcml_updater.add_file_include(step_zcml)
         zcml_updater.save()
         print(
-            f"Updated {zcml_path.relative_to(dest)} with upgrade step "
-            f"{source_version} -> {destination_version}."
+            f"Updated {zcml_path.relative_to(dest)} with "
+            f'<include file="{step_zcml}" />.'
         )
     else:
         print(
-            f"Upgrade step {source_version} -> {destination_version} "
+            f'Include for "{step_zcml}" '
             f"already exists in {zcml_path.relative_to(dest)}."
         )
 

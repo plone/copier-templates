@@ -272,7 +272,7 @@ class MetadataXMLUpdater:
 
 
 class UpgradeZCMLUpdater:
-    """Manages upgrade step entries in upgrades/configure.zcml."""
+    """Manages file includes in upgrades/configure.zcml."""
 
     TEMPLATE = '''\
 <configure
@@ -283,16 +283,7 @@ class UpgradeZCMLUpdater:
 </configure>
 '''
 
-    STEP_TEMPLATE = '''\
-  <genericsetup:upgradeStep
-      title="{title}"
-      description="{description}"
-      source="{source}"
-      destination="{destination}"
-      handler=".{handler_module}.{handler_function}"
-      profile="{package_name}:default"
-      />
-'''
+    INCLUDE_TEMPLATE = '  <include file="{filename}" />\n'
 
     def __init__(self, path: Path | str):
         self.path = Path(path)
@@ -314,46 +305,29 @@ class UpgradeZCMLUpdater:
             self._content = self.TEMPLATE.format(package_name=package_name)
             self._modified = True
 
-    def has_upgrade_step(self, source: str, destination: str) -> bool:
-        """Check if an upgrade step from source to destination already exists."""
+    def has_file_include(self, filename: str) -> bool:
+        """Check if an include for the given filename already exists."""
         content = self.load()
-        pattern = rf'source\s*=\s*["\']\.?{re.escape(source)}["\']'
-        dest_pattern = rf'destination\s*=\s*["\']\.?{re.escape(destination)}["\']'
-        return bool(re.search(pattern, content)) and bool(re.search(dest_pattern, content))
+        escaped = re.escape(filename)
+        pattern = rf'<include\s+file\s*=\s*["\']\.?{escaped}["\']'
+        return bool(re.search(pattern, content))
 
-    def add_upgrade_step(
-        self,
-        title: str,
-        description: str,
-        source: str,
-        destination: str,
-        handler_module: str,
-        handler_function: str,
-        package_name: str,
-    ) -> None:
-        """Add an upgrade step entry before the closing </configure> tag."""
-        if self.has_upgrade_step(source, destination):
+    def add_file_include(self, filename: str) -> None:
+        """Add an <include file="..." /> entry before the closing </configure> tag."""
+        if self.has_file_include(filename):
             return
 
         content = self.load()
         if not content:
             return
 
-        step_entry = self.STEP_TEMPLATE.format(
-            title=title,
-            description=description,
-            source=source,
-            destination=destination,
-            handler_module=handler_module,
-            handler_function=handler_function,
-            package_name=package_name,
-        )
+        include_entry = self.INCLUDE_TEMPLATE.format(filename=filename)
 
         closing_tag = "</configure>"
         if closing_tag in content:
             self._content = content.replace(
                 closing_tag,
-                f"{step_entry}\n{closing_tag}",
+                f"{include_entry}\n{closing_tag}",
             )
             self._modified = True
 

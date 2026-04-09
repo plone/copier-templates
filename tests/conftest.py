@@ -96,6 +96,18 @@ def vocabulary_template(templates_dir):
     return templates_dir / "vocabulary"
 
 
+@pytest.fixture
+def indexer_template(templates_dir):
+    """Return path to indexer template."""
+    return templates_dir / "indexer"
+
+
+@pytest.fixture
+def subscriber_template(templates_dir):
+    """Return path to subscriber template."""
+    return templates_dir / "subscriber"
+
+
 @pytest.fixture(scope="session")
 def prebuilt_addon_source(tmp_path_factory, backend_addon_session_template):
     """

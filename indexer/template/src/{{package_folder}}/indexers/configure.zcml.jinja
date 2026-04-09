@@ -1,0 +1,15 @@
+<configure
+    xmlns="http://namespaces.zope.org/zope"
+    i18n_domain="{{ package_name }}">
+
+  <adapter
+      factory=".{{ indexer_name }}.dummy"
+      name="{{ indexer_name }}"
+      />
+
+  <adapter
+      factory=".{{ indexer_name }}.{{ indexer_name }}"
+      name="{{ indexer_name }}"
+      />
+
+</configure>

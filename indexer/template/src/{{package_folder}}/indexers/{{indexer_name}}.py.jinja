@@ -1,0 +1,19 @@
+"""{{ indexer_name }} catalog indexer.
+
+{{ indexer_description }}
+"""
+from plone.app.contenttypes.interfaces import IDocument
+from plone.dexterity.interfaces import IDexterityContent
+from plone.indexer import indexer
+
+
+@indexer(IDexterityContent)
+def dummy(obj):
+    """Guard: prevent this indexer leaking to other content via acquisition."""
+    raise AttributeError("This field should not be indexed here!")
+
+
+@indexer(IDocument)  # ADJUST: narrow to the interface you actually index.
+def {{ indexer_name }}(obj):
+    """Calculate and return the value for the ``{{ indexer_name }}`` index."""
+    return getattr(obj, "{{ indexer_name }}", None)

@@ -23,7 +23,7 @@ Rule: the generated output must stay as close as possible to the existing bobtem
 
 - [ ] **controlpanel** — Plone control panel (registry-based configuration UI)
 - [ ] **form** — z3c.form based form
-- [ ] **indexer** — custom catalog indexer (`@indexer` decorator + ZCML)
+- [x] **indexer** — custom catalog indexer (`@indexer` decorator + ZCML)
 - [ ] **mockup_pattern** — Mockup JS pattern integration
 - [ ] **portlet** — classic Plone portlet
 - [ ] **subscriber** — event subscriber handler

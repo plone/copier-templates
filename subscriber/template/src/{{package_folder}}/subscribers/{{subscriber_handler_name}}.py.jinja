@@ -1,0 +1,19 @@
+"""{{ subscriber_handler_name }} event handler.
+
+{{ subscriber_description }}
+"""
+import logging
+
+logger = logging.getLogger("{{ package_name }}")
+
+
+def handler(obj, event):
+    """Handle ``{{ subscriber_event.rsplit('.', 1)[1] }}`` for ``{{ subscriber_for.rsplit('.', 1)[1] }}``.
+
+    Replace this body with your actual reaction to the event.
+    """
+    logger.info(
+        "{{ subscriber_handler_name }}: %s fired on %s",
+        event.__class__.__name__,
+        getattr(obj, "absolute_url", lambda: repr(obj))(),
+    )

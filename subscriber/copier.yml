@@ -1,0 +1,47 @@
+_min_copier_version: "9.0.0"
+_subdirectory: template
+_answers_file: .copier-answers.subscriber.yml
+
+_plonecli:
+  type: sub
+  parent: backend_addon
+  description: "Add a zope event subscriber (handler)"
+
+_tasks:
+  - command: "uv run --with tomlkit python3 {{ _copier_conf.src_path }}/copier_hooks.py validate '{{ _copier_conf.dst_path }}'"
+    when: "{{ _copier_conf.operation == 'copy' }}"
+  - "uv run --with tomlkit python3 {{ _copier_conf.src_path }}/copier_hooks.py post_copy '{{ _copier_conf.dst_path }}' '{{ subscriber_handler_name }}'"
+
+# Handler file / function name (snake_case)
+subscriber_handler_name:
+  type: str
+  help: "Subscriber handler module name (snake_case, e.g. 'obj_modified_do_something')"
+  default: "obj_modified_do_something"
+  validator: "{% if not subscriber_handler_name %}Handler name is required{% endif %}"
+
+# Event interface (dotted path)
+subscriber_event:
+  type: str
+  help: "Dotted name of the event interface"
+  default: "zope.lifecycleevent.interfaces.IObjectModifiedEvent"
+
+# Context interface the subscriber reacts on
+subscriber_for:
+  type: str
+  help: "Dotted name of the context interface the subscriber fires for"
+  default: "plone.dexterity.interfaces.IDexterityContent"
+
+subscriber_description:
+  type: str
+  help: "Short description of what the handler does"
+  default: "A custom event subscriber"
+
+# Package info - read from parent addon
+package_name:
+  type: str
+  help: "Parent addon package name"
+
+package_folder:
+  type: str
+  help: "Parent addon package folder (e.g., collective/mypackage)"
+  default: "{{ package_name | replace('.', '/') }}"

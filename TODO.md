@@ -26,7 +26,7 @@ Rule: the generated output must stay as close as possible to the existing bobtem
 - [x] **indexer** — custom catalog indexer (`@indexer` decorator + ZCML)
 - [ ] **mockup_pattern** — Mockup JS pattern integration
 - [ ] **portlet** — classic Plone portlet
-- [ ] **subscriber** — event subscriber handler
+- [x] **subscriber** — event subscriber handler
 - [ ] **svelte_app** — Svelte application integration
 - [ ] **theme** — custom theme package
 - [ ] **theme_barceloneta** — Barceloneta-based theme variant

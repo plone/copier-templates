@@ -1,0 +1,40 @@
+_min_copier_version: "9.0.0"
+_subdirectory: template
+_answers_file: .copier-answers.theme_basic.yml
+
+_plonecli:
+  type: sub
+  parent: backend_addon
+  description: "Add a minimal basic theme (manifest + scss/css/js + profile)"
+
+_tasks:
+  - command: "uv run --with tomlkit python3 {{ _copier_conf.src_path }}/copier_hooks.py validate '{{ _copier_conf.dst_path }}'"
+    when: "{{ _copier_conf.operation == 'copy' }}"
+  - "uv run --with tomlkit python3 {{ _copier_conf.src_path }}/copier_hooks.py post_copy '{{ _copier_conf.dst_path }}' '{{ theme_name }}'"
+
+theme_name:
+  type: str
+  help: "Theme display name (shown in Plone's theming control panel)"
+  default: "My Theme"
+  validator: "{% if not theme_name %}Theme name is required{% endif %}"
+
+theme_description:
+  type: str
+  help: "Short description of the theme"
+  default: "A basic Plone theme"
+
+# Package info
+package_name:
+  type: str
+  help: "Parent addon package name"
+
+package_folder:
+  type: str
+  help: "Parent addon package folder (e.g., collective/mypackage)"
+  default: "{{ package_name | replace('.', '/') }}"
+
+# Computed: theme id from theme_name (lowercased, spaces -> -)
+theme_id:
+  type: str
+  default: "{{ theme_name | lower | replace(' ', '-') | replace('_', '-') }}"
+  when: false

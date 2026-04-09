@@ -126,6 +126,18 @@ def form_template(templates_dir):
     return templates_dir / "form"
 
 
+@pytest.fixture
+def portlet_template(templates_dir):
+    """Return path to portlet template."""
+    return templates_dir / "portlet"
+
+
+@pytest.fixture
+def controlpanel_template(templates_dir):
+    """Return path to controlpanel template."""
+    return templates_dir / "controlpanel"
+
+
 @pytest.fixture(scope="session")
 def prebuilt_addon_source(tmp_path_factory, backend_addon_session_template):
     """

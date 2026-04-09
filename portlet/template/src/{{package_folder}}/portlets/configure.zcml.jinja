@@ -1,0 +1,17 @@
+<configure
+    xmlns="http://namespaces.zope.org/zope"
+    xmlns:plone="http://namespaces.plone.org/plone"
+    i18n_domain="{{ package_name }}">
+
+  <plone:portlet
+      name="{{ package_name }}.{{ portlet_name }}"
+      interface=".{{ portlet_module }}.I{{ portlet_name }}Portlet"
+      assignment=".{{ portlet_module }}.Assignment"
+      view_permission="zope2.View"
+      edit_permission="cmf.ManagePortal"
+      renderer=".{{ portlet_module }}.Renderer"
+      addview=".{{ portlet_module }}.AddForm"
+      editview=".{{ portlet_module }}.EditForm"
+      />
+
+</configure>

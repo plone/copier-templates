@@ -1,0 +1,49 @@
+_min_copier_version: "9.0.0"
+_subdirectory: template
+_answers_file: .copier-answers.portlet.yml
+
+_plonecli:
+  type: sub
+  parent: backend_addon
+  description: "Add a classic Plone portlet"
+
+_tasks:
+  - command: "uv run --with tomlkit python3 {{ _copier_conf.src_path }}/copier_hooks.py validate '{{ _copier_conf.dst_path }}'"
+    when: "{{ _copier_conf.operation == 'copy' }}"
+  - "uv run --with tomlkit python3 {{ _copier_conf.src_path }}/copier_hooks.py post_copy '{{ _copier_conf.dst_path }}' '{{ portlet_name }}'"
+
+portlet_name:
+  type: str
+  help: "Portlet display name (PascalCase, e.g. 'Weather')"
+  default: "Weather"
+  validator: "{% if not portlet_name %}Portlet name is required{% endif %}"
+
+portlet_description:
+  type: str
+  help: "Short description of the portlet"
+  default: "A custom portlet"
+
+# Package info
+package_name:
+  type: str
+  help: "Parent addon package name"
+
+package_folder:
+  type: str
+  help: "Parent addon package folder (e.g., collective/mypackage)"
+  default: "{{ package_name | replace('.', '/') }}"
+
+# Computed: PascalCase -> snake_case module
+portlet_module:
+  type: str
+  default: >-
+    {%- set ns = namespace(out='') -%}
+    {%- for ch in portlet_name -%}
+    {%- if ch.isupper() and ns.out -%}
+    {%- set ns.out = ns.out + '_' + ch|lower -%}
+    {%- else -%}
+    {%- set ns.out = ns.out + ch|lower -%}
+    {%- endif -%}
+    {%- endfor -%}
+    {{ ns.out }}
+  when: false

@@ -1,0 +1,63 @@
+"""{{ portlet_name }} portlet.
+
+{{ portlet_description }}
+"""
+from plone.app.portlets.portlets import base
+from plone.portlets.interfaces import IPortletDataProvider
+from Products.Five.browser.pagetemplatefile import ViewPageTemplateFile
+from zope import schema
+from zope.interface import implementer
+
+
+class I{{ portlet_name }}Portlet(IPortletDataProvider):
+    """Schema for the {{ portlet_name }} portlet."""
+
+    header = schema.TextLine(
+        title="Portlet header",
+        description="Title of the rendered portlet",
+        required=True,
+        default="{{ portlet_name }}",
+    )
+
+
+@implementer(I{{ portlet_name }}Portlet)
+class Assignment(base.Assignment):
+    """Portlet assignment for {{ portlet_name }}."""
+
+    header = "{{ portlet_name }}"
+
+    def __init__(self, header="{{ portlet_name }}"):
+        self.header = header
+
+    @property
+    def title(self):
+        return self.header
+
+
+class Renderer(base.Renderer):
+    """Render the {{ portlet_name }} portlet."""
+
+    render = ViewPageTemplateFile("{{ portlet_module }}.pt")
+
+    @property
+    def available(self):
+        return True
+
+
+class AddForm(base.AddForm):
+    """Add form for the {{ portlet_name }} portlet."""
+
+    schema = I{{ portlet_name }}Portlet
+    label = "Add {{ portlet_name }} portlet"
+    description = "{{ portlet_description }}"
+
+    def create(self, data):
+        return Assignment(**data)
+
+
+class EditForm(base.EditForm):
+    """Edit form for the {{ portlet_name }} portlet."""
+
+    schema = I{{ portlet_name }}Portlet
+    label = "Edit {{ portlet_name }} portlet"
+    description = "{{ portlet_description }}"

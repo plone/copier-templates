@@ -31,7 +31,7 @@ Rule: the generated output must stay as close as possible to the existing bobtem
 - [x] **subscriber** — event subscriber handler
 - [ ] **svelte_app** — Svelte application integration
 - [ ] **theme** — custom theme package
-- [ ] **theme_barceloneta** — Barceloneta-based theme variant
+- [x] **theme_barceloneta** — Barceloneta-based theme variant
 - [x] **theme_basic** — basic theme variant
 - [x] **view** — custom browser view
 - [x] **viewlet** — viewlet component

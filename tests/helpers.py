@@ -1,4 +1,5 @@
 """Test helper utilities for copier-templates tests."""
+import shutil
 import subprocess
 from pathlib import Path
 from typing import Any
@@ -110,6 +111,48 @@ def read_toml(path: Path) -> dict:
 
     with open(path, "rb") as f:
         return tomllib.load(f)
+
+
+def generate_addon(
+    backend_addon_template: Path | str,
+    dest: Path,
+    package_name: str = "collective.mypackage",
+    extra: dict[str, Any] | None = None,
+) -> Path:
+    """
+    Generate a fresh backend_addon at ``dest`` and return its path.
+
+    Thin wrapper around :func:`run_copier` used by subtemplate tests.
+    """
+    data = {"package_name": package_name}
+    if extra:
+        data.update(extra)
+    result = run_copier(backend_addon_template, dest, data=data)
+    assert result.returncode == 0, f"backend_addon generation failed: {result.stderr}"
+    return dest
+
+
+def apply_subtemplate(
+    template_path: Path | str,
+    addon_dir: Path,
+    data: dict[str, Any] | None = None,
+) -> subprocess.CompletedProcess:
+    """
+    Apply a subtemplate on top of an existing addon directory.
+
+    Thin wrapper around :func:`run_copier` that exists so tests read naturally
+    ("apply the vocabulary template to my addon") and so we have a single place
+    to add cross-cutting options later if needed.
+    """
+    return run_copier(template_path, addon_dir, data=data or {})
+
+
+def copy_tree(src: Path, dst: Path) -> Path:
+    """Copy a directory tree, replacing ``dst`` if it already exists."""
+    if dst.exists():
+        shutil.rmtree(dst)
+    shutil.copytree(src, dst)
+    return dst
 
 
 def get_nested_value(data: dict, *keys: str, default: Any = None) -> Any:

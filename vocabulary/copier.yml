@@ -1,0 +1,56 @@
+_min_copier_version: "9.0.0"
+_subdirectory: template
+_answers_file: .copier-answers.vocabulary.yml
+
+_plonecli:
+  type: sub
+  parent: backend_addon
+  description: "Add a named vocabulary (IVocabularyFactory utility)"
+
+_tasks:
+  - command: "uv run --with tomlkit python3 {{ _copier_conf.src_path }}/copier_hooks.py validate '{{ _copier_conf.dst_path }}'"
+    when: "{{ _copier_conf.operation == 'copy' }}"
+  - "uv run --with tomlkit python3 {{ _copier_conf.src_path }}/copier_hooks.py post_copy '{{ _copier_conf.dst_path }}' '{{ vocabulary_name }}'"
+
+# Vocabulary name (PascalCase)
+vocabulary_name:
+  type: str
+  help: "Vocabulary class name in PascalCase (e.g. 'AvailableThings')"
+  default: "AvailableThings"
+  validator: "{% if not vocabulary_name %}Vocabulary name is required{% endif %}"
+
+vocabulary_description:
+  type: str
+  help: "Short description of the vocabulary"
+  default: "A custom named vocabulary"
+
+# Package info - read from parent addon
+package_name:
+  type: str
+  help: "Parent addon package name"
+
+package_folder:
+  type: str
+  help: "Parent addon package folder (e.g., collective/mypackage)"
+  default: "{{ package_name | replace('.', '/') }}"
+
+# Computed values
+vocabulary_class:
+  type: str
+  default: "{{ vocabulary_name }}"
+  when: false
+
+vocabulary_module:
+  type: str
+  # PascalCase -> snake_case (no regex filters in Jinja, so use a small loop).
+  default: >-
+    {%- set ns = namespace(out='') -%}
+    {%- for ch in vocabulary_name -%}
+    {%- if ch.isupper() and ns.out -%}
+    {%- set ns.out = ns.out + '_' + ch|lower -%}
+    {%- else -%}
+    {%- set ns.out = ns.out + ch|lower -%}
+    {%- endif -%}
+    {%- endfor -%}
+    {{ ns.out }}
+  when: false

@@ -12,3 +12,25 @@
 - [ ] the combination of zope-setup and backend_addon should be useful to create the same file structure as cookieplone does:
         backend  # backend_addon with a build-in zope setup
         frontend  # volto frontend
+
+## Not yet implemented bobtemplates.plone subtemplates
+
+Reference: https://github.com/plone/bobtemplates.plone/
+
+Already implemented: `backend_addon` (≈addon), `behavior`, `content_type`, `restapi_service`, `upgrade_step` (plus Plone-specific `zope-setup`, `zope_instance`).
+
+Rule: the generated output must stay as close as possible to the existing bobtemplates.plone structure — no structural deviations without explicit approval.
+
+- [ ] **controlpanel** — Plone control panel (registry-based configuration UI)
+- [ ] **form** — z3c.form based form
+- [ ] **indexer** — custom catalog indexer (`@indexer` decorator + ZCML)
+- [ ] **mockup_pattern** — Mockup JS pattern integration
+- [ ] **portlet** — classic Plone portlet
+- [ ] **subscriber** — event subscriber handler
+- [ ] **svelte_app** — Svelte application integration
+- [ ] **theme** — custom theme package
+- [ ] **theme_barceloneta** — Barceloneta-based theme variant
+- [ ] **theme_basic** — basic theme variant
+- [ ] **view** — custom browser view
+- [ ] **viewlet** — viewlet component
+- [x] **vocabulary** — named vocabulary

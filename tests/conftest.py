@@ -88,3 +88,51 @@ def zope_instance_template(templates_dir):
 def upgrade_step_template(templates_dir):
     """Return path to upgrade_step template."""
     return templates_dir / "upgrade_step"
+
+
+@pytest.fixture
+def vocabulary_template(templates_dir):
+    """Return path to vocabulary template."""
+    return templates_dir / "vocabulary"
+
+
+@pytest.fixture(scope="session")
+def prebuilt_addon_source(tmp_path_factory, backend_addon_session_template):
+    """
+    Generate a backend_addon once per test session.
+
+    Returns the path to a read-only reference directory. Individual tests
+    must copy it via :func:`tests.helpers.copy_tree` rather than mutating
+    it directly.
+    """
+    from helpers import run_copier
+
+    src = tmp_path_factory.mktemp("prebuilt_addon") / "mypackage"
+    result = run_copier(
+        backend_addon_session_template,
+        src,
+        data={"package_name": "collective.mypackage"},
+    )
+    assert result.returncode == 0, (
+        f"Session backend_addon generation failed: {result.stderr}"
+    )
+    return src
+
+
+@pytest.fixture(scope="session")
+def backend_addon_session_template():
+    """Session-scoped path to backend_addon template."""
+    return Path(__file__).parent.parent / "backend_addon"
+
+
+@pytest.fixture
+def fresh_addon(temp_dir, prebuilt_addon_source):
+    """
+    A fresh copy of the prebuilt addon in this test's temp_dir.
+
+    Cheap (a tree copy) compared to re-running copier for backend_addon.
+    """
+    from helpers import copy_tree
+
+    dst = temp_dir / "mypackage"
+    return copy_tree(prebuilt_addon_source, dst)

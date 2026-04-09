@@ -1,0 +1,38 @@
+"""{{ vocabulary_class }} vocabulary.
+
+{{ vocabulary_description }}
+"""
+from zope.interface import implementer
+from zope.schema.interfaces import IVocabularyFactory
+from zope.schema.vocabulary import SimpleTerm
+from zope.schema.vocabulary import SimpleVocabulary
+
+
+class VocabItem:
+    """Lightweight holder for a (token, value) pair."""
+
+    def __init__(self, token, value):
+        self.token = token
+        self.value = value
+
+
+@implementer(IVocabularyFactory)
+class {{ vocabulary_class }}:
+    """Factory for the ``{{ package_name }}.{{ vocabulary_class }}`` vocabulary.
+
+    Replace the hardcoded ``items`` list with whatever source your vocabulary
+    needs (portal catalog query, external service, registry, etc.).
+    """
+
+    def __call__(self, context):
+        items = [
+            VocabItem("example-token", "Example value"),
+        ]
+        terms = [
+            SimpleTerm(value=item.token, token=item.token, title=item.value)
+            for item in items
+        ]
+        return SimpleVocabulary(terms)
+
+
+{{ vocabulary_class }}Factory = {{ vocabulary_class }}()

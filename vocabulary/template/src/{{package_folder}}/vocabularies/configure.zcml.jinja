@@ -1,0 +1,11 @@
+<configure
+    xmlns="http://namespaces.zope.org/zope"
+    i18n_domain="{{ package_name }}">
+
+  <utility
+      component=".{{ vocabulary_module }}.{{ vocabulary_class }}Factory"
+      name="{{ package_name }}.{{ vocabulary_class }}"
+      provides="zope.schema.interfaces.IVocabularyFactory"
+      />
+
+</configure>

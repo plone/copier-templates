@@ -138,6 +138,42 @@ def controlpanel_template(templates_dir):
     return templates_dir / "controlpanel"
 
 
+@pytest.fixture
+def site_initialization_template(templates_dir):
+    """Return path to site_initialization template."""
+    return templates_dir / "site_initialization"
+
+
+@pytest.fixture
+def theme_basic_template(templates_dir):
+    """Return path to theme_basic template."""
+    return templates_dir / "theme_basic"
+
+
+@pytest.fixture
+def theme_barceloneta_template(templates_dir):
+    """Return path to theme_barceloneta template."""
+    return templates_dir / "theme_barceloneta"
+
+
+@pytest.fixture
+def theme_template(templates_dir):
+    """Return path to theme template."""
+    return templates_dir / "theme"
+
+
+@pytest.fixture
+def mockup_pattern_template(templates_dir):
+    """Return path to mockup_pattern template."""
+    return templates_dir / "mockup_pattern"
+
+
+@pytest.fixture
+def svelte_app_template(templates_dir):
+    """Return path to svelte_app template."""
+    return templates_dir / "svelte_app"
+
+
 @pytest.fixture(scope="session")
 def prebuilt_addon_source(tmp_path_factory, backend_addon_session_template):
     """

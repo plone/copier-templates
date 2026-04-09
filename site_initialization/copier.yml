@@ -1,0 +1,34 @@
+_min_copier_version: "9.0.0"
+_subdirectory: template
+_answers_file: .copier-answers.site_initialization.yml
+
+_plonecli:
+  type: sub
+  parent: backend_addon
+  description: "Add site initialization registry records (site name, language, mail)"
+
+_tasks:
+  - command: "uv run --with tomlkit python3 {{ _copier_conf.src_path }}/copier_hooks.py validate '{{ _copier_conf.dst_path }}'"
+    when: "{{ _copier_conf.operation == 'copy' }}"
+  - "uv run --with tomlkit python3 {{ _copier_conf.src_path }}/copier_hooks.py post_copy '{{ _copier_conf.dst_path }}'"
+
+site_name:
+  type: str
+  help: "Plone site title shown in the header / browser tab"
+  default: "New Plone Site"
+  validator: "{% if not site_name %}Site name is required{% endif %}"
+
+language:
+  type: str
+  help: "Two-letter language code (ISO 639-1)"
+  default: "en"
+
+# Package info
+package_name:
+  type: str
+  help: "Parent addon package name"
+
+package_folder:
+  type: str
+  help: "Parent addon package folder (e.g., collective/mypackage)"
+  default: "{{ package_name | replace('.', '/') }}"

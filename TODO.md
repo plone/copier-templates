@@ -17,6 +17,8 @@
 
 Reference: https://github.com/plone/bobtemplates.plone/
 
+- [x] **site_initialization** — GenericSetup registry records for initial Plone site state (site title, language, mail)
+
 Already implemented: `backend_addon` (≈addon), `behavior`, `content_type`, `restapi_service`, `upgrade_step` (plus Plone-specific `zope-setup`, `zope_instance`).
 
 Rule: the generated output must stay as close as possible to the existing bobtemplates.plone structure — no structural deviations without explicit approval.

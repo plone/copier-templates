@@ -1,0 +1,71 @@
+_min_copier_version: "9.0.0"
+_subdirectory: template
+_answers_file: .copier-answers.viewlet.yml
+
+_plonecli:
+  type: sub
+  parent: backend_addon
+  description: "Add a viewlet (browser:viewlet registration)"
+
+_tasks:
+  - command: "uv run --with tomlkit python3 {{ _copier_conf.src_path }}/copier_hooks.py validate '{{ _copier_conf.dst_path }}'"
+    when: "{{ _copier_conf.operation == 'copy' }}"
+  - command: "rm -f '{{ _copier_conf.dst_path }}/src/{{ package_folder }}/viewlets/{{ viewlet_module }}.pt'"
+    when: "{{ not viewlet_template }}"
+  - "uv run --with tomlkit python3 {{ _copier_conf.src_path }}/copier_hooks.py post_copy '{{ _copier_conf.dst_path }}' '{{ viewlet_name }}'"
+
+viewlet_name:
+  type: str
+  help: "Viewlet name (lowercase identifier, e.g. 'myviewlet')"
+  default: "myviewlet"
+  validator: "{% if not viewlet_name %}Viewlet name is required{% endif %}"
+
+viewlet_class_name:
+  type: str
+  help: "Python class name for the viewlet (PascalCase)"
+  default: "MyViewlet"
+
+viewlet_manager:
+  type: str
+  help: "Viewlet manager to register into (e.g. 'plone.portalheader')"
+  default: "plone.portalheader"
+
+viewlet_for:
+  type: str
+  help: "Interface the viewlet is registered for (or '*')"
+  default: "*"
+
+viewlet_template:
+  type: bool
+  help: "Generate an accompanying .pt page template?"
+  default: true
+
+viewlet_description:
+  type: str
+  help: "Short description of the viewlet"
+  default: "A custom viewlet"
+
+# Package info
+package_name:
+  type: str
+  help: "Parent addon package name"
+
+package_folder:
+  type: str
+  help: "Parent addon package folder (e.g., collective/mypackage)"
+  default: "{{ package_name | replace('.', '/') }}"
+
+# Computed: PascalCase -> snake_case module
+viewlet_module:
+  type: str
+  default: >-
+    {%- set ns = namespace(out='') -%}
+    {%- for ch in viewlet_class_name -%}
+    {%- if ch.isupper() and ns.out -%}
+    {%- set ns.out = ns.out + '_' + ch|lower -%}
+    {%- else -%}
+    {%- set ns.out = ns.out + ch|lower -%}
+    {%- endif -%}
+    {%- endfor -%}
+    {{ ns.out }}
+  when: false

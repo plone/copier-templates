@@ -1,0 +1,25 @@
+"""{{ viewlet_class_name }} viewlet.
+
+{{ viewlet_description }}
+"""
+from plone.app.layout.viewlets.common import ViewletBase
+{%- if viewlet_template %}
+from Products.Five.browser.pagetemplatefile import ViewPageTemplateFile
+{%- endif %}
+
+
+class {{ viewlet_class_name }}(ViewletBase):
+    """{{ viewlet_description }}"""
+
+{%- if viewlet_template %}
+
+    index = ViewPageTemplateFile("{{ viewlet_module }}.pt")
+{%- else %}
+
+    def render(self):
+        return '<div class="{{ viewlet_name }}">{{ viewlet_class_name }}</div>'
+{%- endif %}
+
+    def update(self):
+        super().update()
+        # Populate instance attributes used by the template here.

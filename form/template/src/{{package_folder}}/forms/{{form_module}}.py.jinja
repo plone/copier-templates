@@ -1,0 +1,44 @@
+"""{{ form_class_name }} form.
+
+{{ form_description }}
+"""
+from plone.autoform.form import AutoExtensibleForm
+from plone.supermodel import model
+from z3c.form import button
+from z3c.form import form
+from zope import schema
+from zope.interface import Interface
+
+
+class I{{ form_class_name }}Schema(model.Schema):
+    """Schema for {{ form_class_name }}."""
+
+    title = schema.TextLine(
+        title="Title",
+        description="Enter a title",
+        required=True,
+    )
+
+    message = schema.Text(
+        title="Message",
+        description="Enter your message",
+        required=False,
+    )
+
+
+class {{ form_class_name }}(AutoExtensibleForm, form.Form):
+    """{{ form_description }}"""
+
+    schema = I{{ form_class_name }}Schema
+    ignoreContext = True
+    label = "{{ form_class_name }}"
+    description = "{{ form_description }}"
+
+    @button.buttonAndHandler("Submit")
+    def handle_submit(self, action):
+        data, errors = self.extractData()
+        if errors:
+            self.status = self.formErrorsMessage
+            return
+        # TODO: handle the submitted ``data`` dict.
+        self.status = "Thanks for your submission."

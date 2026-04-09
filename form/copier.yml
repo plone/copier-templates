@@ -1,0 +1,59 @@
+_min_copier_version: "9.0.0"
+_subdirectory: template
+_answers_file: .copier-answers.form.yml
+
+_plonecli:
+  type: sub
+  parent: backend_addon
+  description: "Add a z3c.form-based form"
+
+_tasks:
+  - command: "uv run --with tomlkit python3 {{ _copier_conf.src_path }}/copier_hooks.py validate '{{ _copier_conf.dst_path }}'"
+    when: "{{ _copier_conf.operation == 'copy' }}"
+  - "uv run --with tomlkit python3 {{ _copier_conf.src_path }}/copier_hooks.py post_copy '{{ _copier_conf.dst_path }}' '{{ form_name }}'"
+
+form_name:
+  type: str
+  help: "Form URL identifier (e.g. 'my-form', invoked as ``@@my-form``)"
+  default: "my-form"
+  validator: "{% if not form_name %}Form name is required{% endif %}"
+
+form_class_name:
+  type: str
+  help: "Python class name for the form (PascalCase)"
+  default: "MyForm"
+
+form_for:
+  type: str
+  help: "Interface the form is registered for (or '*')"
+  default: "*"
+
+form_description:
+  type: str
+  help: "Short description of the form"
+  default: "A custom form"
+
+# Package info
+package_name:
+  type: str
+  help: "Parent addon package name"
+
+package_folder:
+  type: str
+  help: "Parent addon package folder (e.g., collective/mypackage)"
+  default: "{{ package_name | replace('.', '/') }}"
+
+# Computed: PascalCase -> snake_case module
+form_module:
+  type: str
+  default: >-
+    {%- set ns = namespace(out='') -%}
+    {%- for ch in form_class_name -%}
+    {%- if ch.isupper() and ns.out -%}
+    {%- set ns.out = ns.out + '_' + ch|lower -%}
+    {%- else -%}
+    {%- set ns.out = ns.out + ch|lower -%}
+    {%- endif -%}
+    {%- endfor -%}
+    {{ ns.out }}
+  when: false

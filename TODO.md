@@ -21,7 +21,7 @@ Already implemented: `backend_addon` (≈addon), `behavior`, `content_type`, `re
 
 Rule: the generated output must stay as close as possible to the existing bobtemplates.plone structure — no structural deviations without explicit approval.
 
-- [ ] **controlpanel** — Plone control panel (registry-based configuration UI)
+- [x] **controlpanel** — Plone control panel (registry-based configuration UI)
 - [x] **form** — z3c.form based form
 - [x] **indexer** — custom catalog indexer (`@indexer` decorator + ZCML)
 - [ ] **mockup_pattern** — Mockup JS pattern integration

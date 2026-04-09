@@ -1,0 +1,41 @@
+"""{{ controlpanel_name }} control panel.
+
+{{ controlpanel_description }}
+"""
+from plone.app.registry.browser.controlpanel import ControlPanelFormWrapper
+from plone.app.registry.browser.controlpanel import RegistryEditForm
+from plone.supermodel import model
+from zope import schema
+
+
+class I{{ controlpanel_name }}Settings(model.Schema):
+    """Registry-backed schema for the {{ controlpanel_name }} control panel."""
+
+    enabled = schema.Bool(
+        title="Enabled",
+        description="Turn the {{ controlpanel_name }} feature on or off.",
+        required=False,
+        default=False,
+    )
+
+    label = schema.TextLine(
+        title="Label",
+        description="Free-form text shown next to the feature.",
+        required=False,
+        default="{{ controlpanel_title }}",
+    )
+
+
+class {{ controlpanel_name }}ControlPanelForm(RegistryEditForm):
+    """Edit form for the {{ controlpanel_name }} control panel."""
+
+    schema = I{{ controlpanel_name }}Settings
+    schema_prefix = "{{ package_name }}.{{ controlpanel_name | lower }}"
+    label = "{{ controlpanel_title }}"
+    description = "{{ controlpanel_description }}"
+
+
+class {{ controlpanel_name }}ControlPanelView(ControlPanelFormWrapper):
+    """View wrapper exposing the form as a browser:page."""
+
+    form = {{ controlpanel_name }}ControlPanelForm

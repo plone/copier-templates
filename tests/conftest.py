@@ -108,6 +108,24 @@ def subscriber_template(templates_dir):
     return templates_dir / "subscriber"
 
 
+@pytest.fixture
+def view_template(templates_dir):
+    """Return path to view template."""
+    return templates_dir / "view"
+
+
+@pytest.fixture
+def viewlet_template(templates_dir):
+    """Return path to viewlet template."""
+    return templates_dir / "viewlet"
+
+
+@pytest.fixture
+def form_template(templates_dir):
+    """Return path to form template."""
+    return templates_dir / "form"
+
+
 @pytest.fixture(scope="session")
 def prebuilt_addon_source(tmp_path_factory, backend_addon_session_template):
     """

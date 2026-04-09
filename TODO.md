@@ -31,6 +31,6 @@ Rule: the generated output must stay as close as possible to the existing bobtem
 - [ ] **theme** — custom theme package
 - [ ] **theme_barceloneta** — Barceloneta-based theme variant
 - [ ] **theme_basic** — basic theme variant
-- [ ] **view** — custom browser view
+- [x] **view** — custom browser view
 - [ ] **viewlet** — viewlet component
 - [x] **vocabulary** — named vocabulary

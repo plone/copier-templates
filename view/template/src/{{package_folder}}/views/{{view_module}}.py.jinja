@@ -1,0 +1,30 @@
+"""{{ view_class_name }} browser view.
+
+{{ view_description }}
+"""
+{%- if view_base_class == "BrowserView" %}
+from Products.Five.browser import BrowserView
+{%- elif view_base_class == "DefaultView" %}
+from plone.dexterity.browser.view import DefaultView
+{%- elif view_base_class == "CollectionView" %}
+from plone.app.contenttypes.browser.collection import CollectionView
+{%- endif %}
+{%- if view_template %}
+from Products.Five.browser.pagetemplatefile import ViewPageTemplateFile
+{%- endif %}
+
+
+class {{ view_class_name }}({{ view_base_class }}):
+    """{{ view_description }}"""
+
+{%- if view_template %}
+
+    index = ViewPageTemplateFile("{{ view_module }}.pt")
+
+    def __call__(self):
+        return self.index()
+{%- else %}
+
+    def __call__(self):
+        return '<li class="heading">{{ view_class_name }}</li>'
+{%- endif %}

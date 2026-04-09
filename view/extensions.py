@@ -20,4 +20,6 @@ class ContentTypeInterfacesHook(ContextHook):
 
     def hook(self, context):
         dst_path = Path(context.get("_copier_conf", {}).get("dst_path", "") or ".")
-        context["view_for_choices"] = all_content_type_interfaces(dst_path)
+        choices = all_content_type_interfaces(dst_path)
+        choices.append("<enter manually>")
+        context["view_for_choices"] = choices

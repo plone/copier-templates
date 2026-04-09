@@ -50,6 +50,19 @@ view_for:
   default: "*"
   choices: "{{ view_for_choices }}"
 
+view_for_manual:
+  type: str
+  help: "Custom interface dotted name (e.g. 'my.package.interfaces.IFoo')"
+  default: "*"
+  when: "{{ view_for == '<enter manually>' }}"
+  validator: "{% if not view_for_manual %}Custom interface is required{% endif %}"
+
+# Computed: resolve view_for to the final interface string
+view_for_interface:
+  type: str
+  default: "{{ view_for_manual if view_for == '<enter manually>' else view_for }}"
+  when: false
+
 view_description:
   type: str
   help: "Short description of the view"

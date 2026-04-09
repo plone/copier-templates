@@ -1,0 +1,23 @@
+{
+  "name": "pat-{{ pattern_name }}",
+  "version": "0.1.0",
+  "description": "{{ pattern_description }}",
+  "main": "pat-{{ pattern_name }}.js",
+  "scripts": {
+    "build": "webpack",
+    "test": "jest",
+    "lint": "eslint ."
+  },
+  "devDependencies": {
+    "@babel/core": "^7.24.0",
+    "@babel/preset-env": "^7.24.0",
+    "babel-loader": "^9.1.0",
+    "eslint": "^8.57.0",
+    "jest": "^29.7.0",
+    "webpack": "^5.90.0",
+    "webpack-cli": "^5.1.0"
+  },
+  "dependencies": {
+    "@patternslib/patternslib": "^9.3.0"
+  }
+}

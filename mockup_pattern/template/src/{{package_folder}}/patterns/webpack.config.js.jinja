@@ -1,0 +1,23 @@
+const path = require("path");
+
+module.exports = {
+  mode: "production",
+  entry: "./pat-{{ pattern_name }}.js",
+  output: {
+    path: path.resolve(__dirname, "dist"),
+    filename: "pat-{{ pattern_name }}.min.js",
+    library: {
+      name: "pat{{ pattern_name | replace('-', '') }}",
+      type: "umd",
+    },
+  },
+  module: {
+    rules: [
+      {
+        test: /\.js$/,
+        exclude: /node_modules/,
+        use: "babel-loader",
+      },
+    ],
+  },
+};

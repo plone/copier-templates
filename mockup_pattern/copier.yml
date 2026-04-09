@@ -1,0 +1,34 @@
+_min_copier_version: "9.0.0"
+_subdirectory: template
+_answers_file: .copier-answers.mockup_pattern.yml
+
+_plonecli:
+  type: sub
+  parent: backend_addon
+  description: "Add a Mockup JavaScript pattern scaffold"
+
+_tasks:
+  - command: "uv run --with tomlkit python3 {{ _copier_conf.src_path }}/copier_hooks.py validate '{{ _copier_conf.dst_path }}'"
+    when: "{{ _copier_conf.operation == 'copy' }}"
+  - "uv run --with tomlkit python3 {{ _copier_conf.src_path }}/copier_hooks.py post_copy '{{ _copier_conf.dst_path }}' '{{ pattern_name }}'"
+
+pattern_name:
+  type: str
+  help: "Pattern name (without the 'pat-' prefix, e.g. 'my-pattern')"
+  default: "my-pattern"
+  validator: "{% if not pattern_name %}Pattern name is required{% endif %}"
+
+pattern_description:
+  type: str
+  help: "Short description of the pattern"
+  default: "A custom Mockup JS pattern"
+
+# Package info
+package_name:
+  type: str
+  help: "Parent addon package name"
+
+package_folder:
+  type: str
+  help: "Parent addon package folder (e.g., collective/mypackage)"
+  default: "{{ package_name | replace('.', '/') }}"

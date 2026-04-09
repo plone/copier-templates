@@ -1,0 +1,21 @@
+/* pat-{{ pattern_name }} — {{ pattern_description }}
+ *
+ * A Mockup JavaScript pattern. Register as ``pat-{{ pattern_name }}`` on
+ * any DOM element:
+ *
+ *     <div class="pat-{{ pattern_name }}" data-pat-{{ pattern_name }}="..."></div>
+ */
+import Base from "@patternslib/patternslib/src/core/base";
+
+export default Base.extend({
+  name: "{{ pattern_name }}",
+  trigger: ".pat-{{ pattern_name }}",
+
+  defaults: {
+    // default options
+  },
+
+  init() {
+    // Wire up the pattern on this.$el.
+  },
+});

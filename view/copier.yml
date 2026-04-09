@@ -2,6 +2,10 @@ _min_copier_version: "9.0.0"
 _subdirectory: template
 _answers_file: .copier-answers.view.yml
 
+_jinja_extensions:
+  - copier_template_extensions.TemplateExtensionLoader
+  - extensions.py:ContentTypeInterfacesHook
+
 _plonecli:
   type: sub
   parent: backend_addon
@@ -44,6 +48,7 @@ view_for:
   type: str
   help: "Interface the view is registered for (dotted name or '*' for any)"
   default: "*"
+  choices: "{{ view_for_choices }}"
 
 view_description:
   type: str

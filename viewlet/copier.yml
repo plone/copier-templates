@@ -27,8 +27,35 @@ viewlet_class_name:
 
 viewlet_manager:
   type: str
-  help: "Viewlet manager to register into (e.g. 'plone.portalheader')"
+  help: "Viewlet manager to register into"
   default: "plone.portalheader"
+  choices:
+    - "plone.htmlhead"
+    - "plone.htmlhead.links"
+    - "plone.htmlhead.javascript"
+    - "plone.portaltop"
+    - "plone.portalheader"
+    - "plone.portalfooter"
+    - "plone.portalbottom"
+    - "plone.header"
+    - "plone.footer"
+    - "plone.mainnavigation"
+    - "plone.searchbox"
+    - "plone.personal_bar"
+    - "plone.site_actions"
+    - "plone.globalstatusmessage"
+    - "plone.abovecontent"
+    - "plone.belowcontent"
+    - "plone.abovecontenttitle"
+    - "plone.belowcontenttitle"
+    - "plone.abovecontentbody"
+    - "plone.belowcontentbody"
+    - "plone.abovecontentactions"
+    - "plone.belowcontentactions"
+    - "plone.contentactions"
+    - "plone.contentviews"
+    - "plone.portalleftcolumn"
+    - "plone.portalrightcolumn"
 
 viewlet_for:
   type: str

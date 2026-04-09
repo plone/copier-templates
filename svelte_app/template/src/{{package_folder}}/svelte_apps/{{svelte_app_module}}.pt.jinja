@@ -1,0 +1,15 @@
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:tal="http://xml.zope.org/namespaces/tal"
+      xmlns:metal="http://xml.zope.org/namespaces/metal"
+      lang="en"
+      metal:use-macro="context/main_template/macros/master"
+      i18n_domain="{{ package_name }}">
+  <body>
+    <metal:content-core fill-slot="content-core">
+      <div id="{{ svelte_app_name }}"></div>
+      <script type="module"
+              tal:attributes="src string:${portal_url}/++resource++{{ package_name }}/svelte_apps/{{ svelte_app_name }}/main.js">
+      </script>
+    </metal:content-core>
+  </body>
+</html>

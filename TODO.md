@@ -29,7 +29,7 @@ Rule: the generated output must stay as close as possible to the existing bobtem
 - [x] **mockup_pattern** — Mockup JS pattern integration
 - [x] **portlet** — classic Plone portlet
 - [x] **subscriber** — event subscriber handler
-- [ ] **svelte_app** — Svelte application integration
+- [x] **svelte_app** — Svelte application integration
 - [x] **theme** — custom theme package
 - [x] **theme_barceloneta** — Barceloneta-based theme variant
 - [x] **theme_basic** — basic theme variant

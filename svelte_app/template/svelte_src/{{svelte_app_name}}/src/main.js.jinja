@@ -1,0 +1,12 @@
+import App from "./App.svelte";
+
+const target = document.getElementById("{{ svelte_app_name }}");
+
+const app = target
+  ? new App({
+      target,
+      props: {},
+    })
+  : null;
+
+export default app;

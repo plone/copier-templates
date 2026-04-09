@@ -1,0 +1,17 @@
+"""{{ svelte_app_class }} browser view.
+
+Serves a mount-point page that the built Svelte app attaches to. Build
+the frontend with ``cd svelte_src/{{ svelte_app_name }} && npm run build``
+before exercising this view in a running Zope instance.
+"""
+from Products.Five.browser import BrowserView
+from Products.Five.browser.pagetemplatefile import ViewPageTemplateFile
+
+
+class {{ svelte_app_class }}View(BrowserView):
+    """Render the HTML shell used by the Svelte app."""
+
+    index = ViewPageTemplateFile("{{ svelte_app_module }}.pt")
+
+    def __call__(self):
+        return self.index()

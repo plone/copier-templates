@@ -1,0 +1,58 @@
+_min_copier_version: "9.0.0"
+_subdirectory: template
+_answers_file: .copier-answers.svelte_app.yml
+
+_plonecli:
+  type: sub
+  parent: backend_addon
+  description: "Add a Svelte application scaffold (vite + Python mount view)"
+
+_tasks:
+  - command: "uv run --with tomlkit python3 {{ _copier_conf.src_path }}/copier_hooks.py validate '{{ _copier_conf.dst_path }}'"
+    when: "{{ _copier_conf.operation == 'copy' }}"
+  - "uv run --with tomlkit python3 {{ _copier_conf.src_path }}/copier_hooks.py post_copy '{{ _copier_conf.dst_path }}' '{{ svelte_app_name }}'"
+
+svelte_app_name:
+  type: str
+  help: "Svelte application name (kebab-case, e.g. 'my-svelte-app')"
+  default: "my-svelte-app"
+  validator: "{% if not svelte_app_name %}App name is required{% endif %}"
+
+svelte_app_description:
+  type: str
+  help: "Short description of the Svelte application"
+  default: "A custom Svelte application"
+
+svelte_app_custom_element:
+  type: bool
+  help: "Compile as a Web Component (custom element)?"
+  default: false
+
+# Package info
+package_name:
+  type: str
+  help: "Parent addon package name"
+
+package_folder:
+  type: str
+  help: "Parent addon package folder (e.g., collective/mypackage)"
+  default: "{{ package_name | replace('.', '/') }}"
+
+# Computed: kebab-case -> snake_case (Python module name)
+svelte_app_module:
+  type: str
+  default: "{{ svelte_app_name | replace('-', '_') }}"
+  when: false
+
+# Computed: kebab-case -> PascalCase (Python class name)
+svelte_app_class:
+  type: str
+  default: >-
+    {%- set ns = namespace(out='') -%}
+    {%- for part in svelte_app_name.split('-') -%}
+    {%- if part -%}
+    {%- set ns.out = ns.out + part[0]|upper + part[1:] -%}
+    {%- endif -%}
+    {%- endfor -%}
+    {{ ns.out }}
+  when: false

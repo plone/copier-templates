@@ -238,23 +238,23 @@ modern approach:
 
 ---
 
-## Template Coverage Matrix
+## Template Coverage Matrix (Updated 2026-04-12)
 
 | Subtemplate         | bob | copier | Tests | Questions | Output | Notes |
 |---------------------|-----|--------|-------|-----------|--------|-------|
-| content_type        | ✅  | ✅     | ❌    | ⚠️ Partial | ⚠️     | Missing FTI features |
-| behavior            | ✅  | ✅     | ❌    | ✅ Better  | ✅     | copier has marker/factory toggles |
-| vocabulary          | ✅  | ✅     | ❌    | ⚠️ Missing | ✅     | Missing catalog vocab |
-| indexer             | ✅  | ✅     | ❌    | ✅         | ✅     | |
-| view                | ✅  | ✅     | ❌    | ✅ Better  | ⚠️     | Missing marker interface |
-| viewlet             | ✅  | ✅     | ❌    | ✅ Better  | ✅     | copier asks for manager |
-| form                | ✅  | ✅     | ❌    | ✅         | ✅     | |
-| portlet             | ✅  | ✅     | ❌    | ✅         | ✅     | |
-| restapi_service     | ✅  | ✅     | ✅ Neither | ⚠️    | ⚠️     | Missing expandable element |
-| subscriber          | ✅  | ✅     | ❌    | ✅ Better  | ⚠️     | Missing layer check |
-| controlpanel        | ✅  | ✅     | ✅ Neither | ✅    | ⚠️     | Missing restapi adapter |
-| upgrade_step        | ✅  | ✅     | ❌    | ✅ Better  | ⚠️     | Missing base.py, GS profile |
-| site_initialization | ✅  | ✅     | ✅ Neither | ✅    | ⚠️     | Missing available_languages |
+| content_type        | ✅  | ✅     | ✅    | ✅         | ✅     | FIXED: FTI behaviors, icon, global_allow, registry XML |
+| behavior            | ✅  | ✅     | ✅    | ✅ Better  | ✅     | copier has marker/factory toggles |
+| vocabulary          | ✅  | ✅     | ✅    | ✅         | ✅     | FIXED: Added StaticCatalogVocabulary option |
+| indexer             | ✅  | ✅     | ✅    | ✅         | ✅     | |
+| view                | ✅  | ✅     | ✅    | ✅ Better  | ✅     | Dynamic interface discovery |
+| viewlet             | ✅  | ✅     | ✅    | ✅ Better  | ✅     | copier asks for manager |
+| form                | ✅  | ✅     | ✅    | ✅         | ✅     | |
+| portlet             | ✅  | ✅     | ✅    | ✅         | ✅     | |
+| restapi_service     | ✅  | ✅     | ✅    | ✅         | ✅     | FIXED: Added IExpandableElement option |
+| subscriber          | ✅  | ✅     | ✅    | ✅ Better  | ✅     | FIXED: Added browser layer guard |
+| controlpanel        | ✅  | ✅     | ✅    | ✅         | ⚠️     | Missing restapi adapter (low priority) |
+| upgrade_step        | ✅  | ✅     | ✅    | ✅ Better  | ✅     | FIXED: Added base.py, GS profile registration |
+| site_initialization | ✅  | ✅     | ✅ Neither | ✅    | ✅     | FIXED: Added available_languages |
 | theme               | ✅  | ✅     | ✅ Neither | ✅    | ✅     | Different build approach |
 | theme_basic         | ✅  | ✅     | ✅ Neither | ✅    | ✅     | |
 | theme_barceloneta   | ✅  | ✅     | ✅ Neither | ✅    | ✅     | |

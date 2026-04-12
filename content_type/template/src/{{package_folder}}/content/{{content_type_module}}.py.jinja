@@ -11,17 +11,48 @@ class {{ content_type_interface }}(model.Schema):
     {{ content_type_description }}
     """
 
-    # Add your fields here
-    # Example:
-    # title = schema.TextLine(
-    #     title="Title",
-    #     required=True,
+    # Add your fields here. Examples:
+    #
+    # from plone.app.textfield import RichText
+    # from plone.namedfile.field import NamedBlobFile
+    # from plone.namedfile.field import NamedBlobImage
+    # from plone.supermodel import directives
+    # from z3c.form.browser.radio import RadioFieldWidget
+    #
+    # directives.fieldset(
+    #     "extra",
+    #     label="Extra",
+    #     fields=["extra_info"],
     # )
     #
-    # description = schema.Text(
-    #     title="Description",
+    # text = RichText(
+    #     title="Body text",
     #     required=False,
     # )
+    #
+    # image = NamedBlobImage(
+    #     title="Lead image",
+    #     required=False,
+    # )
+    #
+    # attachment = NamedBlobFile(
+    #     title="Attachment",
+    #     required=False,
+    # )
+    #
+    # directives.widget(category=RadioFieldWidget)
+    # category = schema.Choice(
+    #     title="Category",
+    #     vocabulary="plone.app.vocabularies.PortalTypes",
+    #     required=False,
+    # )
+    #
+    # url = schema.URI(
+    #     title="URL",
+    #     required=False,
+    # )
+
+    pass
 
 
 @implementer({{ content_type_interface }})
@@ -30,6 +61,3 @@ class {{ content_type_class }}({{ content_type_base }}):
 
     {{ content_type_description }}
     """
-
-    # If you need custom methods, add them here
-    pass

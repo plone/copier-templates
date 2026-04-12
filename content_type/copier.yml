@@ -42,16 +42,42 @@ content_type_base:
     - "Container"
     - "Item"
 
-# Add behaviors
+# Icon
+content_type_icon:
+  type: str
+  help: "Bootstrap icon name (e.g., 'puzzle', 'file-earmark', 'folder', 'newspaper')"
+  default: "puzzle"
+
+# Addability
+global_allow:
+  type: bool
+  help: "Should this type be globally addable?"
+  default: true
+
+# Content type filtering (for Containers)
+filter_content_types:
+  type: bool
+  help: "Filter allowed content types inside this container?"
+  default: true
+  when: "{{ content_type_base == 'Container' }}"
+
+# Behaviors
+activate_default_behaviors:
+  type: bool
+  help: "Activate standard Plone behaviors (metadata, locking, versioning, etc.)?"
+  default: true
+
 enable_dublin_core:
   type: bool
   help: "Enable Dublin Core metadata behavior?"
   default: true
+  when: "{{ not activate_default_behaviors }}"
 
 enable_navigation:
   type: bool
   help: "Enable navigation behavior (exclude from nav)?"
   default: true
+  when: "{{ not activate_default_behaviors }}"
 
 # Computed values
 content_type_class:

@@ -7,13 +7,17 @@
 
   <property name="title" i18n:translate="">{{ content_type_name }}</property>
   <property name="description" i18n:translate="">{{ content_type_description }}</property>
-  <property name="icon_expr">string:${portal_url}/document_icon.png</property>
+  <property name="icon_expr">string:plone-content-icon {{ content_type_icon }}</property>
   <property name="factory">{{ content_type_class }}</property>
   <property name="add_view_expr">string:${folder_url}/++add++{{ content_type_class }}</property>
   <property name="link_target"></property>
   <property name="immediate_view">view</property>
-  <property name="global_allow">True</property>
+  <property name="global_allow">{{ global_allow | string | title }}</property>
+{%- if content_type_base == 'Container' %}
+  <property name="filter_content_types">{{ filter_content_types | string | title }}</property>
+{%- else %}
   <property name="filter_content_types">True</property>
+{%- endif %}
   <property name="allowed_content_types"/>
   <property name="allow_discussion">False</property>
   <property name="default_view">view</property>
@@ -27,6 +31,27 @@
   <property name="model_source"></property>
   <property name="model_file"></property>
   <property name="behaviors">
+{%- if activate_default_behaviors %}
+    <element value="plone.basic"/>
+    <element value="plone.namefromtitle"/>
+    <element value="plone.allowdiscussion"/>
+    <element value="plone.excludefromnavigation"/>
+    <element value="plone.shortname"/>
+    <element value="plone.dublincore"/>
+    <element value="plone.ownership"/>
+    <element value="plone.publication"/>
+    <element value="plone.categorization"/>
+    <element value="plone.locking"/>
+    <element value="plone.textindexer"/>
+    <element value="plone.relateditems"/>
+    <element value="plone.versioning"/>
+{%- if content_type_base == 'Container' %}
+    <element value="plone.constraintypes"/>
+    <element value="plone.nextprevioustoggle"/>
+    <element value="plone.nextpreviousenabled"/>
+    <element value="plone.navigationroot"/>
+{%- endif %}
+{%- else %}
 {%- if enable_dublin_core %}
     <element value="plone.dublincore"/>
 {%- endif %}
@@ -34,6 +59,7 @@
     <element value="plone.excludefromnavigation"/>
 {%- endif %}
     <element value="plone.namefromtitle"/>
+{%- endif %}
   </property>
 
   <alias from="(Default)" to="(dynamic view)"/>
@@ -53,7 +79,7 @@
   <action title="Edit"
           action_id="edit"
           category="object"
-          condition_expr=""
+          condition_expr="not:object/@@plone_lock_info/is_locked_for_current_user|python:True"
           icon_expr=""
           link_target=""
           url_expr="string:${object_url}/edit"

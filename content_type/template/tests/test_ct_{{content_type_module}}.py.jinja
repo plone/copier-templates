@@ -71,6 +71,6 @@ class TestContentType{{ content_type_class }}:
         assert "test-{{ content_type_module }}" not in self.portal.objectIds()
 
     def test_global_allow(self):
-        """Test content type is globally addable."""
+        """Test content type global_allow setting."""
         fti = queryUtility(DexterityFTI, name="{{ content_type_portal_type }}")
-        assert fti.global_allow is True
+        assert fti.global_allow is {{ global_allow | string | title }}

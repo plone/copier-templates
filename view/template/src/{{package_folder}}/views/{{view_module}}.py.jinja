@@ -19,8 +19,11 @@ class {{ view_class_name }}({{ view_base_class }}):
 
 {%- if view_template %}
 
-    # This can be useful if you have more than one template and need conditions to control which template is rendered:
+    # If you need to override the template registered in configure.zcml:
     # index = ViewPageTemplateFile("{{ view_module }}.pt")
+
+    def __call__(self):
+        return self.index()
 {%- else %}
 
     def __call__(self):

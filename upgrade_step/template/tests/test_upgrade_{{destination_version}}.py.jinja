@@ -1,0 +1,31 @@
+"""Tests for upgrade step {{ source_version }} -> {{ destination_version }}."""
+import pytest
+
+from plone.app.testing import setRoles
+from plone.app.testing import TEST_USER_ID
+
+from {{ package_name }}.testing import INTEGRATION_TESTING
+
+
+class TestUpgrade{{ destination_version }}:
+    """Test upgrade to version {{ destination_version }}."""
+
+    layer = INTEGRATION_TESTING
+
+    @pytest.fixture(autouse=True)
+    def _setup(self, integration_testing):
+        self.portal = integration_testing["portal"]
+        setRoles(self.portal, TEST_USER_ID, ["Manager"])
+
+    def test_upgrade_handler_importable(self):
+        """Test the upgrade handler can be imported."""
+        from {{ package_name }}.upgrades.v{{ destination_version }} import upgrade
+
+        assert callable(upgrade)
+
+    def test_upgrade_handler_runs(self):
+        """Test the upgrade handler can be executed."""
+        from {{ package_name }}.upgrades.v{{ destination_version }} import upgrade
+
+        setup_tool = self.portal.portal_setup
+        upgrade(setup_tool)

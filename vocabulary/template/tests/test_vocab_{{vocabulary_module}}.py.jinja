@@ -1,0 +1,31 @@
+"""Tests for {{ vocabulary_class }} vocabulary."""
+import pytest
+
+from zope.component import getUtility
+from zope.schema.interfaces import IVocabularyFactory
+from zope.schema.interfaces import IVocabularyTokenized
+
+from {{ package_name }}.testing import INTEGRATION_TESTING
+
+
+class TestVocabulary{{ vocabulary_class }}:
+    """Test {{ vocabulary_class }} vocabulary."""
+
+    layer = INTEGRATION_TESTING
+
+    @pytest.fixture(autouse=True)
+    def _setup(self, integration_testing):
+        self.portal = integration_testing["portal"]
+
+    def test_vocabulary_registered(self):
+        """Test vocabulary factory is registered."""
+        vocab_name = "{{ package_name }}.{{ vocabulary_class }}"
+        factory = getUtility(IVocabularyFactory, vocab_name)
+        assert IVocabularyFactory.providedBy(factory)
+
+    def test_vocabulary_tokenized(self):
+        """Test vocabulary implements IVocabularyTokenized."""
+        vocab_name = "{{ package_name }}.{{ vocabulary_class }}"
+        factory = getUtility(IVocabularyFactory, vocab_name)
+        vocabulary = factory(self.portal)
+        assert IVocabularyTokenized.providedBy(vocabulary)

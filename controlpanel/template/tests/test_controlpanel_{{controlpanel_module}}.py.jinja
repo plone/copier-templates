@@ -1,0 +1,39 @@
+"""Tests for {{ controlpanel_name }} control panel."""
+import pytest
+
+from plone.app.testing import setRoles
+from plone.app.testing import TEST_USER_ID
+
+from {{ package_name }}.testing import INTEGRATION_TESTING
+
+
+class TestControlPanel{{ controlpanel_name }}:
+    """Test {{ controlpanel_name }} control panel."""
+
+    layer = INTEGRATION_TESTING
+
+    @pytest.fixture(autouse=True)
+    def _setup(self, integration_testing):
+        self.portal = integration_testing["portal"]
+        setRoles(self.portal, TEST_USER_ID, ["Manager"])
+
+    def test_controlpanel_registered(self):
+        """Test control panel is registered."""
+        controlpanel = self.portal.portal_controlpanel
+        actions = [
+            a.getAction(self.portal)["id"]
+            for a in controlpanel.listActions()
+        ]
+        assert "{{ controlpanel_url_id }}" in actions
+
+    def test_controlpanel_view(self):
+        """Test control panel view is accessible."""
+        from zope.component import getMultiAdapter
+        from zope.publisher.browser import TestRequest
+
+        request = TestRequest()
+        view = getMultiAdapter(
+            (self.portal, request),
+            name="{{ controlpanel_url_id }}",
+        )
+        assert view is not None

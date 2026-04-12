@@ -1,0 +1,24 @@
+"""Tests for {{ subscriber_handler_name }} event subscriber."""
+import pytest
+
+from plone.app.testing import setRoles
+from plone.app.testing import TEST_USER_ID
+
+from {{ package_name }}.testing import INTEGRATION_TESTING
+
+
+class TestSubscriber{{ subscriber_handler_name | replace('_', ' ') | title | replace(' ', '') }}:
+    """Test {{ subscriber_handler_name }} subscriber."""
+
+    layer = INTEGRATION_TESTING
+
+    @pytest.fixture(autouse=True)
+    def _setup(self, integration_testing):
+        self.portal = integration_testing["portal"]
+        setRoles(self.portal, TEST_USER_ID, ["Manager"])
+
+    def test_handler_importable(self):
+        """Test the handler function can be imported."""
+        from {{ package_name }}.subscribers.{{ subscriber_handler_name }} import handler
+
+        assert callable(handler)

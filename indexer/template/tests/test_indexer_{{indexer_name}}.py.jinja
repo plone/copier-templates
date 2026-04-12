@@ -1,0 +1,34 @@
+"""Tests for {{ indexer_name }} indexer."""
+import pytest
+
+from plone.app.testing import setRoles
+from plone.app.testing import TEST_USER_ID
+
+from {{ package_name }}.testing import INTEGRATION_TESTING
+
+
+class TestIndexer{{ indexer_name | replace('_', ' ') | title | replace(' ', '') }}:
+    """Test {{ indexer_name }} indexer."""
+
+    layer = INTEGRATION_TESTING
+
+    @pytest.fixture(autouse=True)
+    def _setup(self, integration_testing):
+        self.portal = integration_testing["portal"]
+        setRoles(self.portal, TEST_USER_ID, ["Manager"])
+
+    def test_indexer_registered(self):
+        """Test indexer is registered as a catalog adapter."""
+        from plone.indexer.interfaces import IIndexer
+        from zope.component import queryMultiAdapter
+
+        from plone.app.contenttypes.interfaces import IDocument
+
+        doc = self.portal.invokeFactory("Document", "test-doc", title="Test")
+        doc = self.portal["test-doc"]
+        indexer = queryMultiAdapter(
+            (doc, self.portal.portal_catalog),
+            IIndexer,
+            name="{{ indexer_name }}",
+        )
+        assert indexer is not None

@@ -1,0 +1,33 @@
+"""Tests for {{ portlet_name }} portlet."""
+import pytest
+
+from plone.portlets.interfaces import IPortletType
+from zope.component import getUtility
+
+from {{ package_name }}.testing import INTEGRATION_TESTING
+
+
+class TestPortlet{{ portlet_name }}:
+    """Test {{ portlet_name }} portlet."""
+
+    layer = INTEGRATION_TESTING
+
+    @pytest.fixture(autouse=True)
+    def _setup(self, integration_testing):
+        self.portal = integration_testing["portal"]
+
+    def test_portlet_type_registered(self):
+        """Test portlet type is registered."""
+        portlet = getUtility(
+            IPortletType,
+            name="{{ package_name }}.{{ portlet_name }}",
+        )
+        assert portlet is not None
+
+    def test_portlet_addview(self):
+        """Test portlet addview attribute."""
+        portlet = getUtility(
+            IPortletType,
+            name="{{ package_name }}.{{ portlet_name }}",
+        )
+        assert portlet.addview == "{{ package_name }}.{{ portlet_name }}"

@@ -4,6 +4,8 @@
 """
 import logging
 
+from zope.globalrequest import getRequest
+
 logger = logging.getLogger("{{ package_name }}")
 
 
@@ -12,6 +14,13 @@ def handler(obj, event):
 
     Replace this body with your actual reaction to the event.
     """
+    # Guard: only run when our add-on's browser layer is active.
+    # Uncomment and adjust after adding a browser layer to your package:
+    # from {{ package_name }}.interfaces import I{{ package_name.replace('.', ' ').title().replace(' ', '') }}Layer
+    # request = getRequest()
+    # if not request or not I{{ package_name.replace('.', ' ').title().replace(' ', '') }}Layer.providedBy(request):
+    #     return
+
     logger.info(
         "{{ subscriber_handler_name }}: %s fired on %s",
         event.__class__.__name__,

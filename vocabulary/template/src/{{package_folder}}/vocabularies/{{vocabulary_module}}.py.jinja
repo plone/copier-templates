@@ -2,6 +2,33 @@
 
 {{ vocabulary_description }}
 """
+{%- if vocabulary_type == 'catalog' %}
+from plone.app.vocabularies.catalog import StaticCatalogVocabulary
+from zope.interface import implementer
+from zope.schema.interfaces import IVocabularyFactory
+
+
+@implementer(IVocabularyFactory)
+class {{ vocabulary_class }}:
+    """Factory for the ``{{ package_name }}.{{ vocabulary_class }}`` vocabulary.
+
+    Returns terms from a catalog query. Adjust the ``query`` dict and
+    ``title_template`` to match your use case.
+    """
+
+    def __call__(self, context):
+        return StaticCatalogVocabulary(
+            {
+                "portal_type": [
+                    "Document",
+                ],
+            },
+            title_template="{brain.Title}",
+        )
+
+
+{{ vocabulary_class }}Factory = {{ vocabulary_class }}()
+{%- else %}
 from zope.interface import implementer
 from zope.schema.interfaces import IVocabularyFactory
 from zope.schema.vocabulary import SimpleTerm
@@ -36,3 +63,4 @@ class {{ vocabulary_class }}:
 
 
 {{ vocabulary_class }}Factory = {{ vocabulary_class }}()
+{%- endif %}

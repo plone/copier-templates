@@ -24,6 +24,15 @@ vocabulary_description:
   help: "Short description of the vocabulary"
   default: "A custom named vocabulary"
 
+# Vocabulary implementation type
+vocabulary_type:
+  type: str
+  help: "Vocabulary implementation type"
+  default: "simple"
+  choices:
+    simple: "SimpleTerm — hardcoded list of (token, title) pairs"
+    catalog: "StaticCatalogVocabulary — terms from catalog query"
+
 # Package info - read from parent addon
 package_name:
   type: str

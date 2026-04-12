@@ -62,18 +62,25 @@ def post_copy(
 
     # Extend views/configure.zcml (create if missing) with a new browser:page
     views_zcml = dest / f"src/{package_folder}/views/configure.zcml"
-    template_line = ""
     if view_template.lower() == "true":
-        template_line = f'      template="{view_module}.pt"\n'
-    snippet = (
-        "  <browser:page\n"
-        f'      name="{view_name}"\n'
-        f'      for="{view_for_interface}"\n'
-        f'      class=".{view_module}.{view_class_name}"\n'
-        f"{template_line}"
-        '      permission="zope2.View"\n'
-        "      />\n"
-    )
+        snippet = (
+            "  <browser:page\n"
+            f'      name="{view_name}"\n'
+            f'      for="{view_for_interface}"\n'
+            f'      class=".{view_module}.{view_class_name}"\n'
+            f'      template="{view_module}.pt"\n'
+            '      permission="zope2.View"\n'
+            "      />\n"
+        )
+    else:
+        snippet = (
+            "  <browser:page\n"
+            f'      name="{view_name}"\n'
+            f'      for="{view_for_interface}"\n'
+            f'      class=".{view_module}.{view_class_name}"\n'
+            '      permission="zope2.View"\n'
+            "      />\n"
+        )
     _, msg = extend_configure_zcml(
         views_zcml,
         package_name or "package",

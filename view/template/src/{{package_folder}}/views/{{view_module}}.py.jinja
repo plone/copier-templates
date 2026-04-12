@@ -10,7 +10,7 @@ from plone.dexterity.browser.view import DefaultView
 from plone.app.contenttypes.browser.collection import CollectionView
 {%- endif %}
 {%- if view_template %}
-from Products.Five.browser.pagetemplatefile import ViewPageTemplateFile
+# from Products.Five.browser.pagetemplatefile import ViewPageTemplateFile
 {%- endif %}
 
 
@@ -19,10 +19,8 @@ class {{ view_class_name }}({{ view_base_class }}):
 
 {%- if view_template %}
 
-    index = ViewPageTemplateFile("{{ view_module }}.pt")
-
-    def __call__(self):
-        return self.index()
+    # This can be useful if you have more than one template and need conditions to control which template is rendered:
+    # index = ViewPageTemplateFile("{{ view_module }}.pt")
 {%- else %}
 
     def __call__(self):

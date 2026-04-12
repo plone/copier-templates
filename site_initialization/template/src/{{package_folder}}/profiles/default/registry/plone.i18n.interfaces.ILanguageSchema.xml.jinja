@@ -7,4 +7,12 @@
     <value>{{ language }}</value>
   </record>
 
+  <record field="available_languages"
+          interface="plone.i18n.interfaces.ILanguageSchema"
+          name="plone.available_languages">
+    <value purge="true">
+      <element>{{ language }}</element>
+    </value>
+  </record>
+
 </registry>

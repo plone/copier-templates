@@ -216,6 +216,7 @@ class TestContentTypeEdgeCases:
             addon_dir,
             data={
                 "content_type_name": "Simple",
+                "activate_default_behaviors": False,
                 "enable_dublin_core": False,
             },
         )
@@ -231,6 +232,7 @@ class TestContentTypeEdgeCases:
             addon_dir,
             data={
                 "content_type_name": "Hidden",
+                "activate_default_behaviors": False,
                 "enable_navigation": False,
             },
         )

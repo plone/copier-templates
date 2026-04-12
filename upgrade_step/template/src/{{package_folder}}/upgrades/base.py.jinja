@@ -1,0 +1,7 @@
+"""Shared upgrade step utilities for {{ package_name }}."""
+from plone.app.upgrade.utils import loadMigrationProfile
+
+
+def reload_gs_profile(context):
+    """Reload the default GenericSetup profile."""
+    loadMigrationProfile(context, "profile-{{ package_name }}:default")

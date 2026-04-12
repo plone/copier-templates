@@ -10,6 +10,7 @@ from exceptions import AddonContextError, CopierTemplateError
 from hooks.addon_context import find_addon_context
 from hooks.git_check import warn_git_unclean
 from utils.pyproject_updater import PyprojectUpdater
+from utils.xml_updater import ParentZCMLUpdater, extend_configure_zcml
 
 
 def validate(dest_path: str) -> None:
@@ -28,11 +29,21 @@ def validate(dest_path: str) -> None:
         )
 
 
-def post_copy(dest_path: str, behavior_name: str) -> None:
+def post_copy(
+    dest_path: str,
+    behavior_name: str,
+    behavior_interface: str = "",
+    behavior_module: str = "",
+    behavior_class: str = "",
+    behavior_description: str = "A custom Dexterity behavior",
+    behavior_marker: str = "True",
+    behavior_factory: str = "True",
+) -> None:
     """
     Post-copy tasks:
     1. Register behavior in addon settings
-    2. Add include for behaviors subpackage in parent configure.zcml
+    2. Extend behaviors/configure.zcml with a <plone:behavior> entry
+    3. Add include for behaviors subpackage in parent configure.zcml
     """
     cwd = Path.cwd()
     dest = Path(dest_path)
@@ -54,23 +65,49 @@ def post_copy(dest_path: str, behavior_name: str) -> None:
 
     print(f"Registered behavior '{behavior_name}' in addon settings.")
 
-    # Get package info for ZCML update
     addon_settings = updater.get_addon_settings()
+    package_name = addon_settings.get("package_name", "")
     package_folder = addon_settings.get("package_folder", "")
-    if not package_folder:
-        package_name = addon_settings.get("package_name", "")
-        if package_name:
-            package_folder = package_name.replace(".", "/")
+    if not package_folder and package_name:
+        package_folder = package_name.replace(".", "/")
 
-    if package_folder:
-        parent_zcml = dest / f"src/{package_folder}/configure.zcml"
-        if parent_zcml.exists():
-            from utils.xml_updater import ParentZCMLUpdater
-            zcml_updater = ParentZCMLUpdater(parent_zcml)
-            if not zcml_updater.has_include(".behaviors"):
-                zcml_updater.add_include(".behaviors")
-                zcml_updater.save()
-                print("Added <include package=\".behaviors\" /> to parent configure.zcml.")
+    if not package_folder:
+        return
+
+    # Extend behaviors/configure.zcml with the <plone:behavior> entry
+    provides = f".{behavior_module}.{behavior_interface}"
+    lines = [
+        "  <plone:behavior",
+        f'      title="{behavior_interface}"',
+        f'      description="{behavior_description}"',
+        f'      provides="{provides}"',
+    ]
+    if behavior_marker.lower() == "true":
+        lines.append(f'      marker=".{behavior_module}.{behavior_interface}Marker"')
+    if behavior_factory.lower() == "true":
+        lines.append(f'      factory=".{behavior_module}.{behavior_class}"')
+    lines.append("      />")
+    snippet = "\n".join(lines) + "\n"
+
+    behaviors_zcml = dest / f"src/{package_folder}/behaviors/configure.zcml"
+    _, msg = extend_configure_zcml(
+        behaviors_zcml,
+        package_name or "package",
+        namespaces={"plone": "http://namespaces.plone.org/plone"},
+        element_tag="plone:behavior",
+        identifying_attr="provides",
+        identifying_value=provides,
+        snippet=snippet,
+    )
+    print(msg)
+
+    parent_zcml = dest / f"src/{package_folder}/configure.zcml"
+    if parent_zcml.exists():
+        zcml_updater = ParentZCMLUpdater(parent_zcml)
+        if not zcml_updater.has_include(".behaviors"):
+            zcml_updater.add_include(".behaviors")
+            zcml_updater.save()
+            print("Added <include package=\".behaviors\" /> to parent configure.zcml.")
 
 
 def main():
@@ -91,9 +128,9 @@ def main():
 
         elif command == "post_copy":
             if len(sys.argv) < 4:
-                print("Usage: tasks.py post_copy <dest_path> <behavior_name>")
+                print("Usage: tasks.py post_copy <dest_path> <behavior_name> ...")
                 sys.exit(1)
-            post_copy(sys.argv[2], sys.argv[3])
+            post_copy(*sys.argv[2:])
 
         else:
             print(f"Unknown command: {command}")

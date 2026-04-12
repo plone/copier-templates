@@ -110,6 +110,127 @@ class ConfigureZCMLUpdater:
             self.path.write_text(self._content)
 
 
+class ZCMLConfigureExtender:
+    """Generic extender for ``<configure>``-based ZCML files.
+
+    This is the canonical way for subtemplates to *extend* (never
+    overwrite) an existing ``configure.zcml`` file. It will:
+
+    * create the file with a minimal ``<configure>`` root if it doesn't
+      exist (declaring any required xmlns prefixes);
+    * ensure additional xmlns prefixes are declared on an existing root;
+    * check whether an element already exists (by tag + identifying
+      attribute) so re-runs are idempotent;
+    * append a raw ZCML element snippet before the closing
+      ``</configure>`` tag, preserving all existing entries.
+    """
+
+    ZOPE_NS = "http://namespaces.zope.org/zope"
+
+    def __init__(self, path: Path | str):
+        self.path = Path(path)
+        self._content: str | None = None
+        self._modified = False
+
+    def load(self) -> str:
+        if self._content is None:
+            self._content = self.path.read_text() if self.path.exists() else ""
+        return self._content
+
+    def create_if_missing(
+        self,
+        package_name: str,
+        namespaces: dict[str, str] | None = None,
+    ) -> None:
+        if self.path.exists():
+            return
+        ns: dict[str, str] = {"": self.ZOPE_NS}
+        if namespaces:
+            ns.update(namespaces)
+        lines = ["<configure"]
+        for prefix, uri in ns.items():
+            attr = f'xmlns:{prefix}="{uri}"' if prefix else f'xmlns="{uri}"'
+            lines.append(f"    {attr}")
+        lines[-1] = lines[-1] + f'\n    i18n_domain="{package_name}">'
+        header = "\n".join(lines)
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        self._content = f"{header}\n\n</configure>\n"
+        self._modified = True
+
+    def ensure_namespaces(self, namespaces: dict[str, str]) -> None:
+        content = self.load()
+        if not content:
+            return
+        match = re.search(r"<configure\b[^>]*>", content, re.DOTALL)
+        if not match:
+            return
+        opening = match.group(0)
+        new_opening = opening
+        for prefix, uri in namespaces.items():
+            attr = f'xmlns:{prefix}="{uri}"' if prefix else f'xmlns="{uri}"'
+            if attr in new_opening:
+                continue
+            # Insert the new attribute just before the closing '>'
+            new_opening = new_opening[:-1].rstrip() + f"\n    {attr}" + ">"
+        if new_opening != opening:
+            self._content = content.replace(opening, new_opening, 1)
+            self._modified = True
+
+    def has_element(self, tag: str, attr: str, value: str) -> bool:
+        """Return True if a ``<tag>`` with ``attr="value"`` already exists."""
+        content = self.load()
+        if not content:
+            return False
+        pattern = (
+            rf'<{re.escape(tag)}\b[^>]*\b{re.escape(attr)}\s*=\s*'
+            rf'["\']{re.escape(value)}["\']'
+        )
+        return bool(re.search(pattern, content, re.DOTALL))
+
+    def append_element(self, snippet: str) -> None:
+        """Append a raw ZCML element snippet before ``</configure>``."""
+        content = self.load()
+        if not content:
+            return
+        snippet = snippet.rstrip() + "\n"
+        closing = "</configure>"
+        if closing not in content:
+            return
+        self._content = content.replace(closing, f"{snippet}\n{closing}", 1)
+        self._modified = True
+
+    def save(self) -> None:
+        if self._modified and self._content is not None:
+            self.path.write_text(self._content)
+
+
+def extend_configure_zcml(
+    zcml_path: Path | str,
+    package_name: str,
+    namespaces: dict[str, str],
+    element_tag: str,
+    identifying_attr: str,
+    identifying_value: str,
+    snippet: str,
+) -> tuple[bool, str]:
+    """Create-if-missing and idempotently append a ZCML element.
+
+    Returns ``(changed, message)`` — ``changed`` is True if anything
+    was written; ``message`` is a human-readable status string.
+    """
+    ext = ZCMLConfigureExtender(zcml_path)
+    ext.create_if_missing(package_name, namespaces=namespaces)
+    ext.ensure_namespaces(namespaces)
+    if ext.has_element(element_tag, identifying_attr, identifying_value):
+        return False, (
+            f"{element_tag} with {identifying_attr}='{identifying_value}' "
+            f"already exists in {zcml_path}."
+        )
+    ext.append_element(snippet)
+    ext.save()
+    return True, f"Extended {zcml_path} with {element_tag} '{identifying_value}'."
+
+
 class ParentZCMLUpdater:
     """Updates parent addon configure.zcml with include directives for subpackages."""
 

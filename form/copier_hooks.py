@@ -9,6 +9,7 @@ from exceptions import AddonContextError, CopierTemplateError  # noqa: E402
 from hooks.addon_context import find_addon_context  # noqa: E402
 from hooks.git_check import warn_git_unclean  # noqa: E402
 from utils.pyproject_updater import PyprojectUpdater  # noqa: E402
+from utils.xml_updater import ParentZCMLUpdater, extend_configure_zcml  # noqa: E402
 
 
 def validate(dest_path: str) -> None:
@@ -31,7 +32,13 @@ def _resolve_dest(dest_path: str) -> Path:
     return dest
 
 
-def post_copy(dest_path: str, form_name: str) -> None:
+def post_copy(
+    dest_path: str,
+    form_name: str,
+    form_for: str = "*",
+    form_module: str = "",
+    form_class_name: str = "",
+) -> None:
     dest = _resolve_dest(dest_path)
     pyproject_path = dest / "pyproject.toml"
     if not pyproject_path.exists():
@@ -44,25 +51,44 @@ def post_copy(dest_path: str, form_name: str) -> None:
     print(f"Registered form '{form_name}' in addon settings.")
 
     addon_settings = updater.get_addon_settings()
+    package_name = addon_settings.get("package_name", "")
     package_folder = addon_settings.get("package_folder", "")
+    if not package_folder and package_name:
+        package_folder = package_name.replace(".", "/")
+
     if not package_folder:
-        package_name = addon_settings.get("package_name", "")
-        if package_name:
-            package_folder = package_name.replace(".", "/")
+        return
 
-    if package_folder:
-        parent_zcml = dest / f"src/{package_folder}/configure.zcml"
-        if parent_zcml.exists():
-            from utils.xml_updater import ParentZCMLUpdater
+    snippet = (
+        "  <browser:page\n"
+        f'      name="{form_name}"\n'
+        f'      for="{form_for}"\n'
+        f'      class=".{form_module}.{form_class_name}"\n'
+        '      permission="zope2.View"\n'
+        "      />\n"
+    )
+    forms_zcml = dest / f"src/{package_folder}/forms/configure.zcml"
+    _, msg = extend_configure_zcml(
+        forms_zcml,
+        package_name or "package",
+        namespaces={"browser": "http://namespaces.zope.org/browser"},
+        element_tag="browser:page",
+        identifying_attr="name",
+        identifying_value=form_name,
+        snippet=snippet,
+    )
+    print(msg)
 
-            zcml_updater = ParentZCMLUpdater(parent_zcml)
-            if not zcml_updater.has_include(".forms"):
-                zcml_updater.add_include(".forms")
-                zcml_updater.save()
-                print(
-                    'Added <include package=".forms" /> to parent '
-                    "configure.zcml."
-                )
+    parent_zcml = dest / f"src/{package_folder}/configure.zcml"
+    if parent_zcml.exists():
+        zcml_updater = ParentZCMLUpdater(parent_zcml)
+        if not zcml_updater.has_include(".forms"):
+            zcml_updater.add_include(".forms")
+            zcml_updater.save()
+            print(
+                'Added <include package=".forms" /> to parent '
+                "configure.zcml."
+            )
 
 
 def main() -> None:
@@ -75,7 +101,7 @@ def main() -> None:
         if command == "validate":
             validate(sys.argv[2])
         elif command == "post_copy":
-            post_copy(sys.argv[2], sys.argv[3])
+            post_copy(*sys.argv[2:])
         else:
             print(f"Unknown command: {command}")
             sys.exit(1)

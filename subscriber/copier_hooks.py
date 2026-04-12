@@ -9,6 +9,7 @@ from exceptions import AddonContextError, CopierTemplateError  # noqa: E402
 from hooks.addon_context import find_addon_context  # noqa: E402
 from hooks.git_check import warn_git_unclean  # noqa: E402
 from utils.pyproject_updater import PyprojectUpdater  # noqa: E402
+from utils.xml_updater import ParentZCMLUpdater, extend_configure_zcml  # noqa: E402
 
 
 def validate(dest_path: str) -> None:
@@ -31,7 +32,12 @@ def _resolve_dest(dest_path: str) -> Path:
     return dest
 
 
-def post_copy(dest_path: str, handler_name: str) -> None:
+def post_copy(
+    dest_path: str,
+    handler_name: str,
+    subscriber_for: str = "plone.dexterity.interfaces.IDexterityContent",
+    subscriber_event: str = "zope.lifecycleevent.interfaces.IObjectModifiedEvent",
+) -> None:
     dest = _resolve_dest(dest_path)
     pyproject_path = dest / "pyproject.toml"
     if not pyproject_path.exists():
@@ -44,25 +50,44 @@ def post_copy(dest_path: str, handler_name: str) -> None:
     print(f"Registered subscriber '{handler_name}' in addon settings.")
 
     addon_settings = updater.get_addon_settings()
+    package_name = addon_settings.get("package_name", "")
     package_folder = addon_settings.get("package_folder", "")
+    if not package_folder and package_name:
+        package_folder = package_name.replace(".", "/")
+
     if not package_folder:
-        package_name = addon_settings.get("package_name", "")
-        if package_name:
-            package_folder = package_name.replace(".", "/")
+        return
 
-    if package_folder:
-        parent_zcml = dest / f"src/{package_folder}/configure.zcml"
-        if parent_zcml.exists():
-            from utils.xml_updater import ParentZCMLUpdater
+    handler_dotted = f".{handler_name}.handler"
+    snippet = (
+        "  <subscriber\n"
+        f'      for="{subscriber_for}\n'
+        f'           {subscriber_event}"\n'
+        f'      handler="{handler_dotted}"\n'
+        "      />\n"
+    )
+    subs_zcml = dest / f"src/{package_folder}/subscribers/configure.zcml"
+    _, msg = extend_configure_zcml(
+        subs_zcml,
+        package_name or "package",
+        namespaces={},
+        element_tag="subscriber",
+        identifying_attr="handler",
+        identifying_value=handler_dotted,
+        snippet=snippet,
+    )
+    print(msg)
 
-            zcml_updater = ParentZCMLUpdater(parent_zcml)
-            if not zcml_updater.has_include(".subscribers"):
-                zcml_updater.add_include(".subscribers")
-                zcml_updater.save()
-                print(
-                    'Added <include package=".subscribers" /> to parent '
-                    "configure.zcml."
-                )
+    parent_zcml = dest / f"src/{package_folder}/configure.zcml"
+    if parent_zcml.exists():
+        zcml_updater = ParentZCMLUpdater(parent_zcml)
+        if not zcml_updater.has_include(".subscribers"):
+            zcml_updater.add_include(".subscribers")
+            zcml_updater.save()
+            print(
+                'Added <include package=".subscribers" /> to parent '
+                "configure.zcml."
+            )
 
 
 def main() -> None:
@@ -75,7 +100,7 @@ def main() -> None:
         if command == "validate":
             validate(sys.argv[2])
         elif command == "post_copy":
-            post_copy(sys.argv[2], sys.argv[3])
+            post_copy(*sys.argv[2:])
         else:
             print(f"Unknown command: {command}")
             sys.exit(1)

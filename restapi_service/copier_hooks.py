@@ -10,6 +10,10 @@ from exceptions import AddonContextError, CopierTemplateError
 from hooks.addon_context import find_addon_context
 from hooks.git_check import warn_git_unclean
 from utils.pyproject_updater import PyprojectUpdater
+from utils.xml_updater import (
+    ParentZCMLUpdater,
+    ZCMLConfigureExtender,
+)
 
 
 def validate(dest_path: str) -> None:
@@ -28,11 +32,23 @@ def validate(dest_path: str) -> None:
         )
 
 
-def post_copy(dest_path: str, service_name: str) -> None:
+def post_copy(
+    dest_path: str,
+    service_name: str,
+    service_for: str = "plone.dexterity.interfaces.IDexterityContainer",
+    service_module: str = "",
+    service_class: str = "",
+    service_endpoint: str = "",
+    http_get: str = "True",
+    http_post: str = "False",
+    http_patch: str = "False",
+    http_delete: str = "False",
+) -> None:
     """
     Post-copy tasks:
     1. Register service in addon settings
-    2. Add include for services subpackage in parent configure.zcml
+    2. Extend services/configure.zcml with <plone:service> entries
+    3. Add include for services subpackage in parent configure.zcml
     """
     cwd = Path.cwd()
     dest = Path(dest_path)
@@ -48,8 +64,9 @@ def post_copy(dest_path: str, service_name: str) -> None:
         print(f"Warning: pyproject.toml not found at {pyproject_path}")
         return
 
-    # Normalize service name to endpoint format
-    endpoint = f"@{service_name.lower().replace('_', '-').replace(' ', '-')}"
+    endpoint = service_endpoint or (
+        f"@{service_name.lower().replace('_', '-').replace(' ', '-')}"
+    )
 
     updater = PyprojectUpdater(pyproject_path)
     updater.register_subtemplate("services", endpoint)
@@ -57,23 +74,75 @@ def post_copy(dest_path: str, service_name: str) -> None:
 
     print(f"Registered service '{endpoint}' in addon settings.")
 
-    # Get package info for ZCML update
     addon_settings = updater.get_addon_settings()
+    package_name = addon_settings.get("package_name", "")
     package_folder = addon_settings.get("package_folder", "")
-    if not package_folder:
-        package_name = addon_settings.get("package_name", "")
-        if package_name:
-            package_folder = package_name.replace(".", "/")
+    if not package_folder and package_name:
+        package_folder = package_name.replace(".", "/")
 
-    if package_folder:
-        parent_zcml = dest / f"src/{package_folder}/configure.zcml"
-        if parent_zcml.exists():
-            from utils.xml_updater import ParentZCMLUpdater
-            zcml_updater = ParentZCMLUpdater(parent_zcml)
-            if not zcml_updater.has_include(".services"):
-                zcml_updater.add_include(".services")
-                zcml_updater.save()
-                print("Added <include package=\".services\" /> to parent configure.zcml.")
+    if not package_folder:
+        return
+
+    import re as _re
+
+    factory = f".{service_module}.{service_class}"
+    methods = [
+        ("GET", http_get, "zope2.View"),
+        ("POST", http_post, "cmf.ModifyPortalContent"),
+        ("PATCH", http_patch, "cmf.ModifyPortalContent"),
+        ("DELETE", http_delete, "cmf.ModifyPortalContent"),
+    ]
+    services_zcml = dest / f"src/{package_folder}/services/configure.zcml"
+    ext = ZCMLConfigureExtender(services_zcml)
+    ext.create_if_missing(
+        package_name or "package",
+        namespaces={"plone": "http://namespaces.plone.org/plone"},
+    )
+    ext.ensure_namespaces({"plone": "http://namespaces.plone.org/plone"})
+
+    def _has_method_name(content: str, method: str, name: str) -> bool:
+        pat = _re.compile(
+            r"<plone:service\b[^>]*?\bmethod\s*=\s*[\"']"
+            + _re.escape(method)
+            + r"[\"'][^>]*?\bname\s*=\s*[\"']"
+            + _re.escape(name)
+            + r"[\"']",
+            _re.DOTALL,
+        )
+        return bool(pat.search(content))
+
+    for method, enabled, permission in methods:
+        if enabled.lower() != "true":
+            continue
+        if _has_method_name(ext.load(), method, endpoint):
+            print(
+                f"plone:service {method} '{endpoint}' already exists in "
+                f"{services_zcml.relative_to(dest)}."
+            )
+            continue
+        snippet = (
+            "  <plone:service\n"
+            f'      method="{method}"\n'
+            f'      for="{service_for}"\n'
+            f'      factory="{factory}"\n'
+            f'      name="{endpoint}"\n'
+            f'      permission="{permission}"\n'
+            "      />\n"
+        )
+        ext.append_element(snippet)
+        print(
+            f"Extended {services_zcml.relative_to(dest)} with plone:service "
+            f"{method} '{endpoint}'."
+        )
+    ext.save()
+
+    parent_zcml = dest / f"src/{package_folder}/configure.zcml"
+    if parent_zcml.exists():
+        zcml_updater = ParentZCMLUpdater(parent_zcml)
+        if not zcml_updater.has_include(".services"):
+            zcml_updater.add_include(".services")
+            zcml_updater.save()
+            print("Added <include package=\".services\" /> to parent configure.zcml.")
 
 
 def main():
@@ -94,9 +163,9 @@ def main():
 
         elif command == "post_copy":
             if len(sys.argv) < 4:
-                print("Usage: tasks.py post_copy <dest_path> <service_name>")
+                print("Usage: tasks.py post_copy <dest_path> <service_name> ...")
                 sys.exit(1)
-            post_copy(sys.argv[2], sys.argv[3])
+            post_copy(*sys.argv[2:])
 
         else:
             print(f"Unknown command: {command}")

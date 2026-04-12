@@ -10,6 +10,7 @@ from exceptions import AddonContextError, CopierTemplateError  # noqa: E402
 from hooks.addon_context import find_addon_context  # noqa: E402
 from hooks.git_check import warn_git_unclean  # noqa: E402
 from utils.pyproject_updater import PyprojectUpdater  # noqa: E402
+from utils.xml_updater import ParentZCMLUpdater, extend_configure_zcml  # noqa: E402
 
 
 def validate(dest_path: str) -> None:
@@ -35,13 +36,19 @@ def _resolve_dest(dest_path: str) -> Path:
     return dest
 
 
-def post_copy(dest_path: str, vocabulary_name: str) -> None:
+def post_copy(
+    dest_path: str,
+    vocabulary_name: str,
+    vocabulary_module: str = "",
+    vocabulary_class: str = "",
+) -> None:
     """
     Register the vocabulary in the parent addon:
 
     1. Record it under ``[tool.plone.backend_addon.settings.subtemplates]``.
-    2. Ensure ``<include package=".vocabularies" />`` in parent ``configure.zcml``
-       (idempotent).
+    2. Extend ``vocabularies/configure.zcml`` with the ``<utility>`` entry.
+    3. Ensure ``<include package=".vocabularies" />`` in parent
+       ``configure.zcml`` (idempotent).
     """
     dest = _resolve_dest(dest_path)
     pyproject_path = dest / "pyproject.toml"
@@ -56,25 +63,45 @@ def post_copy(dest_path: str, vocabulary_name: str) -> None:
     print(f"Registered vocabulary '{vocabulary_name}' in addon settings.")
 
     addon_settings = updater.get_addon_settings()
+    package_name = addon_settings.get("package_name", "")
     package_folder = addon_settings.get("package_folder", "")
+    if not package_folder and package_name:
+        package_folder = package_name.replace(".", "/")
+
     if not package_folder:
-        package_name = addon_settings.get("package_name", "")
-        if package_name:
-            package_folder = package_name.replace(".", "/")
+        return
 
-    if package_folder:
-        parent_zcml = dest / f"src/{package_folder}/configure.zcml"
-        if parent_zcml.exists():
-            from utils.xml_updater import ParentZCMLUpdater
+    utility_name = f"{package_name}.{vocabulary_class or vocabulary_name}"
+    component = f".{vocabulary_module}.{vocabulary_class or vocabulary_name}Factory"
+    snippet = (
+        "  <utility\n"
+        f'      component="{component}"\n'
+        f'      name="{utility_name}"\n'
+        '      provides="zope.schema.interfaces.IVocabularyFactory"\n'
+        "      />\n"
+    )
+    vocabs_zcml = dest / f"src/{package_folder}/vocabularies/configure.zcml"
+    _, msg = extend_configure_zcml(
+        vocabs_zcml,
+        package_name or "package",
+        namespaces={},
+        element_tag="utility",
+        identifying_attr="name",
+        identifying_value=utility_name,
+        snippet=snippet,
+    )
+    print(msg)
 
-            zcml_updater = ParentZCMLUpdater(parent_zcml)
-            if not zcml_updater.has_include(".vocabularies"):
-                zcml_updater.add_include(".vocabularies")
-                zcml_updater.save()
-                print(
-                    'Added <include package=".vocabularies" /> to parent '
-                    "configure.zcml."
-                )
+    parent_zcml = dest / f"src/{package_folder}/configure.zcml"
+    if parent_zcml.exists():
+        zcml_updater = ParentZCMLUpdater(parent_zcml)
+        if not zcml_updater.has_include(".vocabularies"):
+            zcml_updater.add_include(".vocabularies")
+            zcml_updater.save()
+            print(
+                'Added <include package=".vocabularies" /> to parent '
+                "configure.zcml."
+            )
 
 
 def main() -> None:
@@ -93,10 +120,10 @@ def main() -> None:
         elif command == "post_copy":
             if len(sys.argv) < 4:
                 print(
-                    "Usage: copier_hooks.py post_copy <dest_path> <vocabulary_name>"
+                    "Usage: copier_hooks.py post_copy <dest_path> <vocabulary_name> ..."
                 )
                 sys.exit(1)
-            post_copy(sys.argv[2], sys.argv[3])
+            post_copy(*sys.argv[2:])
         else:
             print(f"Unknown command: {command}")
             sys.exit(1)

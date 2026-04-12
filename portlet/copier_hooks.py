@@ -9,6 +9,7 @@ from exceptions import AddonContextError, CopierTemplateError  # noqa: E402
 from hooks.addon_context import find_addon_context  # noqa: E402
 from hooks.git_check import warn_git_unclean  # noqa: E402
 from utils.pyproject_updater import PyprojectUpdater  # noqa: E402
+from utils.xml_updater import ParentZCMLUpdater, extend_configure_zcml  # noqa: E402
 
 
 def validate(dest_path: str) -> None:
@@ -31,7 +32,11 @@ def _resolve_dest(dest_path: str) -> Path:
     return dest
 
 
-def post_copy(dest_path: str, portlet_name: str) -> None:
+def post_copy(
+    dest_path: str,
+    portlet_name: str,
+    portlet_module: str = "",
+) -> None:
     dest = _resolve_dest(dest_path)
     pyproject_path = dest / "pyproject.toml"
     if not pyproject_path.exists():
@@ -44,25 +49,49 @@ def post_copy(dest_path: str, portlet_name: str) -> None:
     print(f"Registered portlet '{portlet_name}' in addon settings.")
 
     addon_settings = updater.get_addon_settings()
+    package_name = addon_settings.get("package_name", "")
     package_folder = addon_settings.get("package_folder", "")
+    if not package_folder and package_name:
+        package_folder = package_name.replace(".", "/")
+
     if not package_folder:
-        package_name = addon_settings.get("package_name", "")
-        if package_name:
-            package_folder = package_name.replace(".", "/")
+        return
 
-    if package_folder:
-        parent_zcml = dest / f"src/{package_folder}/configure.zcml"
-        if parent_zcml.exists():
-            from utils.xml_updater import ParentZCMLUpdater
+    registration_name = f"{package_name}.{portlet_name}"
+    snippet = (
+        "  <plone:portlet\n"
+        f'      name="{registration_name}"\n'
+        f'      interface=".{portlet_module}.I{portlet_name}Portlet"\n'
+        f'      assignment=".{portlet_module}.Assignment"\n'
+        '      view_permission="zope2.View"\n'
+        '      edit_permission="cmf.ManagePortal"\n'
+        f'      renderer=".{portlet_module}.Renderer"\n'
+        f'      addview=".{portlet_module}.AddForm"\n'
+        f'      editview=".{portlet_module}.EditForm"\n'
+        "      />\n"
+    )
+    portlets_zcml = dest / f"src/{package_folder}/portlets/configure.zcml"
+    _, msg = extend_configure_zcml(
+        portlets_zcml,
+        package_name or "package",
+        namespaces={"plone": "http://namespaces.plone.org/plone"},
+        element_tag="plone:portlet",
+        identifying_attr="name",
+        identifying_value=registration_name,
+        snippet=snippet,
+    )
+    print(msg)
 
-            zcml_updater = ParentZCMLUpdater(parent_zcml)
-            if not zcml_updater.has_include(".portlets"):
-                zcml_updater.add_include(".portlets")
-                zcml_updater.save()
-                print(
-                    'Added <include package=".portlets" /> to parent '
-                    "configure.zcml."
-                )
+    parent_zcml = dest / f"src/{package_folder}/configure.zcml"
+    if parent_zcml.exists():
+        zcml_updater = ParentZCMLUpdater(parent_zcml)
+        if not zcml_updater.has_include(".portlets"):
+            zcml_updater.add_include(".portlets")
+            zcml_updater.save()
+            print(
+                'Added <include package=".portlets" /> to parent '
+                "configure.zcml."
+            )
 
 
 def main() -> None:
@@ -75,7 +104,7 @@ def main() -> None:
         if command == "validate":
             validate(sys.argv[2])
         elif command == "post_copy":
-            post_copy(sys.argv[2], sys.argv[3])
+            post_copy(*sys.argv[2:])
         else:
             print(f"Unknown command: {command}")
             sys.exit(1)

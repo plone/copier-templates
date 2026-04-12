@@ -9,6 +9,7 @@ from exceptions import AddonContextError, CopierTemplateError  # noqa: E402
 from hooks.addon_context import find_addon_context  # noqa: E402
 from hooks.git_check import warn_git_unclean  # noqa: E402
 from utils.pyproject_updater import PyprojectUpdater  # noqa: E402
+from utils.xml_updater import ParentZCMLUpdater, extend_configure_zcml  # noqa: E402
 
 
 def validate(dest_path: str) -> None:
@@ -44,25 +45,52 @@ def post_copy(dest_path: str, indexer_name: str) -> None:
     print(f"Registered indexer '{indexer_name}' in addon settings.")
 
     addon_settings = updater.get_addon_settings()
+    package_name = addon_settings.get("package_name", "")
     package_folder = addon_settings.get("package_folder", "")
+    if not package_folder and package_name:
+        package_folder = package_name.replace(".", "/")
+
     if not package_folder:
-        package_name = addon_settings.get("package_name", "")
-        if package_name:
-            package_folder = package_name.replace(".", "/")
+        return
 
-    if package_folder:
-        parent_zcml = dest / f"src/{package_folder}/configure.zcml"
-        if parent_zcml.exists():
-            from utils.xml_updater import ParentZCMLUpdater
+    # Extend indexers/configure.zcml with the adapter registrations
+    dummy_factory = f".{indexer_name}.dummy"
+    real_factory = f".{indexer_name}.{indexer_name}"
+    dummy_snippet = (
+        "  <adapter\n"
+        f'      factory="{dummy_factory}"\n'
+        f'      name="{indexer_name}"\n'
+        "      />\n"
+    )
+    real_snippet = (
+        "  <adapter\n"
+        f'      factory="{real_factory}"\n'
+        f'      name="{indexer_name}"\n'
+        "      />\n"
+    )
+    indexers_zcml = dest / f"src/{package_folder}/indexers/configure.zcml"
+    for factory, snippet in ((dummy_factory, dummy_snippet), (real_factory, real_snippet)):
+        _, msg = extend_configure_zcml(
+            indexers_zcml,
+            package_name or "package",
+            namespaces={},
+            element_tag="adapter",
+            identifying_attr="factory",
+            identifying_value=factory,
+            snippet=snippet,
+        )
+        print(msg)
 
-            zcml_updater = ParentZCMLUpdater(parent_zcml)
-            if not zcml_updater.has_include(".indexers"):
-                zcml_updater.add_include(".indexers")
-                zcml_updater.save()
-                print(
-                    'Added <include package=".indexers" /> to parent '
-                    "configure.zcml."
-                )
+    parent_zcml = dest / f"src/{package_folder}/configure.zcml"
+    if parent_zcml.exists():
+        zcml_updater = ParentZCMLUpdater(parent_zcml)
+        if not zcml_updater.has_include(".indexers"):
+            zcml_updater.add_include(".indexers")
+            zcml_updater.save()
+            print(
+                'Added <include package=".indexers" /> to parent '
+                "configure.zcml."
+            )
 
 
 def main() -> None:

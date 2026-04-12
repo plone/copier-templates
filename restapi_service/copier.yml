@@ -10,7 +10,7 @@ _plonecli:
 _tasks:
   - command: "uv run --with tomlkit python3 {{ _copier_conf.src_path }}/copier_hooks.py validate '{{ _copier_conf.dst_path }}'"
     when: "{{ _copier_conf.operation == 'copy' }}"
-  - "uv run --with tomlkit python3 {{ _copier_conf.src_path }}/copier_hooks.py post_copy '{{ _copier_conf.dst_path }}' '{{ service_name }}'"
+  - "uv run --with tomlkit python3 {{ _copier_conf.src_path }}/copier_hooks.py post_copy '{{ _copier_conf.dst_path }}' '{{ service_name }}' '{{ service_for }}' '{{ service_module }}' '{{ service_class }}' '{{ service_endpoint }}' '{{ http_get }}' '{{ http_post }}' '{{ http_patch }}' '{{ http_delete }}'"
 
 # Service name
 service_name:

@@ -9,6 +9,7 @@ from exceptions import AddonContextError, CopierTemplateError  # noqa: E402
 from hooks.addon_context import find_addon_context  # noqa: E402
 from hooks.git_check import warn_git_unclean  # noqa: E402
 from utils.pyproject_updater import PyprojectUpdater  # noqa: E402
+from utils.xml_updater import ParentZCMLUpdater, extend_configure_zcml  # noqa: E402
 
 
 def validate(dest_path: str) -> None:
@@ -31,7 +32,12 @@ def _resolve_dest(dest_path: str) -> Path:
     return dest
 
 
-def post_copy(dest_path: str, controlpanel_name: str) -> None:
+def post_copy(
+    dest_path: str,
+    controlpanel_name: str,
+    controlpanel_url_id: str = "",
+    controlpanel_module: str = "",
+) -> None:
     dest = _resolve_dest(dest_path)
     pyproject_path = dest / "pyproject.toml"
     if not pyproject_path.exists():
@@ -46,25 +52,45 @@ def post_copy(dest_path: str, controlpanel_name: str) -> None:
     )
 
     addon_settings = updater.get_addon_settings()
+    package_name = addon_settings.get("package_name", "")
     package_folder = addon_settings.get("package_folder", "")
+    if not package_folder and package_name:
+        package_folder = package_name.replace(".", "/")
+
     if not package_folder:
-        package_name = addon_settings.get("package_name", "")
-        if package_name:
-            package_folder = package_name.replace(".", "/")
+        return
 
-    if package_folder:
-        parent_zcml = dest / f"src/{package_folder}/configure.zcml"
-        if parent_zcml.exists():
-            from utils.xml_updater import ParentZCMLUpdater
+    # Extend controlpanels/configure.zcml with the <browser:page> entry
+    snippet = (
+        "  <browser:page\n"
+        f'      name="{controlpanel_url_id}"\n'
+        '      for="Products.CMFPlone.interfaces.IPloneSiteRoot"\n'
+        f'      class=".{controlpanel_module}.{controlpanel_name}ControlPanelView"\n'
+        '      permission="cmf.ManagePortal"\n'
+        "      />\n"
+    )
+    cp_zcml = dest / f"src/{package_folder}/controlpanels/configure.zcml"
+    _, msg = extend_configure_zcml(
+        cp_zcml,
+        package_name or "package",
+        namespaces={"browser": "http://namespaces.zope.org/browser"},
+        element_tag="browser:page",
+        identifying_attr="name",
+        identifying_value=controlpanel_url_id,
+        snippet=snippet,
+    )
+    print(msg)
 
-            zcml_updater = ParentZCMLUpdater(parent_zcml)
-            if not zcml_updater.has_include(".controlpanels"):
-                zcml_updater.add_include(".controlpanels")
-                zcml_updater.save()
-                print(
-                    'Added <include package=".controlpanels" /> to parent '
-                    "configure.zcml."
-                )
+    parent_zcml = dest / f"src/{package_folder}/configure.zcml"
+    if parent_zcml.exists():
+        zcml_updater = ParentZCMLUpdater(parent_zcml)
+        if not zcml_updater.has_include(".controlpanels"):
+            zcml_updater.add_include(".controlpanels")
+            zcml_updater.save()
+            print(
+                'Added <include package=".controlpanels" /> to parent '
+                "configure.zcml."
+            )
 
 
 def main() -> None:
@@ -77,7 +103,7 @@ def main() -> None:
         if command == "validate":
             validate(sys.argv[2])
         elif command == "post_copy":
-            post_copy(sys.argv[2], sys.argv[3])
+            post_copy(*sys.argv[2:])
         else:
             print(f"Unknown command: {command}")
             sys.exit(1)

@@ -27,11 +27,11 @@ vocabulary_description:
 # Vocabulary implementation type
 vocabulary_type:
   type: str
-  help: "Vocabulary implementation type"
+  help: "Vocabulary implementation type (simple: SimpleTerm list, catalog: StaticCatalogVocabulary)"
   default: "simple"
   choices:
-    simple: "SimpleTerm — hardcoded list of (token, title) pairs"
-    catalog: "StaticCatalogVocabulary — terms from catalog query"
+    - "simple"
+    - "catalog"
 
 # Package info - read from parent addon
 package_name:

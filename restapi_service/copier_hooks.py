@@ -43,6 +43,7 @@ def post_copy(
     http_post: str = "False",
     http_patch: str = "False",
     http_delete: str = "False",
+    expandable: str = "False",
 ) -> None:
     """
     Post-copy tasks:
@@ -134,6 +135,24 @@ def post_copy(
             f"Extended {services_zcml.relative_to(dest)} with plone:service "
             f"{method} '{endpoint}'."
         )
+    # Register IExpandableElement adapter if requested
+    if expandable.lower() == "true":
+        element_factory = f".{service_module}.{service_class}Element"
+        element_name = service_name.lower().replace("_", "-").replace(" ", "-")
+        adapter_snippet = (
+            "  <adapter\n"
+            f'      factory="{element_factory}"\n'
+            f'      name="{element_name}"\n'
+            "      />\n"
+        )
+        content = ext.load()
+        if element_factory not in content:
+            ext.append_element(adapter_snippet)
+            print(
+                f"Extended {services_zcml.relative_to(dest)} with "
+                f"IExpandableElement adapter '{element_name}'."
+            )
+
     ext.save()
 
     parent_zcml = dest / f"src/{package_folder}/configure.zcml"

@@ -1,0 +1,43 @@
+"""Test the {{ theme_name }} theme is installed and active."""
+import pytest
+
+from plone import api
+from plone.app.testing import setRoles
+from plone.app.testing import TEST_USER_ID
+
+from {{ package_name }}.testing import INTEGRATION_TESTING
+
+
+THEME_ID = "{{ theme_id }}"
+
+
+class TestTheme{{ theme_id | replace('-', ' ') | replace('_', ' ') | title | replace(' ', '') }}:
+    """Verify the theme profile installs and the theme is active."""
+
+    layer = INTEGRATION_TESTING
+
+    @pytest.fixture(autouse=True)
+    def _setup(self, integration_testing):
+        self.portal = integration_testing["portal"]
+        setRoles(self.portal, TEST_USER_ID, ["Manager"])
+
+    def test_theme_installed(self):
+        """The theme resource directory is registered."""
+        from plone.resource.interfaces import IResourceDirectory
+        from zope.component import getUtility
+
+        resources = getUtility(IResourceDirectory, name="theme")
+        assert THEME_ID in resources.listDirectory()
+
+    def test_theme_is_current(self):
+        """The installed theme is the current (active) theme."""
+        from plone.app.theming.utils import getCurrentTheme
+
+        assert getCurrentTheme() == THEME_ID
+
+    def test_theming_enabled(self):
+        """Diazo theming is enabled in the registry."""
+        enabled = api.portal.get_registry_record(
+            "plone.app.theming.interfaces.IThemeSettings.enabled"
+        )
+        assert enabled is True

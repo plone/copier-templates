@@ -69,3 +69,26 @@ class TestThemeIntegration:
             "subtemplates"
         ]
         assert "Full Theme" in subtemplates["themes"]
+
+    def test_registers_plone_static_in_parent_zcml(
+        self, fresh_addon, theme_template
+    ):
+        result = apply_subtemplate(
+            theme_template,
+            fresh_addon,
+            data={
+                "theme_name": "My Theme",
+                "package_name": "collective.mypackage",
+            },
+        )
+        assert result.returncode == 0, f"copier failed: {result.stderr}"
+        zcml = fresh_addon / "src/collective/mypackage/configure.zcml"
+        assert_file_exists(
+            zcml,
+            content_contains=[
+                "<plone:static",
+                'directory="theme"',
+                'name="my-theme"',
+                'type="theme"',
+            ],
+        )

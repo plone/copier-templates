@@ -9,6 +9,7 @@ from exceptions import AddonContextError, CopierTemplateError  # noqa: E402
 from hooks.addon_context import find_addon_context  # noqa: E402
 from hooks.git_check import warn_git_unclean  # noqa: E402
 from utils.pyproject_updater import PyprojectUpdater  # noqa: E402
+from utils.xml_updater import extend_configure_zcml  # noqa: E402
 
 
 def validate(dest_path: str) -> None:
@@ -42,6 +43,40 @@ def post_copy(dest_path: str, theme_name: str) -> None:
     updater.register_subtemplate("themes", theme_name)
     updater.save()
     print(f"Registered theme '{theme_name}' in addon settings.")
+
+    _register_theme_static_resource(dest, updater, theme_name)
+
+
+def _register_theme_static_resource(
+    dest: Path, updater: PyprojectUpdater, theme_name: str
+) -> None:
+    addon_settings = updater.get_addon_settings()
+    package_name = addon_settings.get("package_name", "")
+    package_folder = addon_settings.get("package_folder", "")
+    if not package_folder and package_name:
+        package_folder = package_name.replace(".", "/")
+    if not package_folder:
+        return
+
+    theme_id = theme_name.lower().replace(" ", "-").replace("_", "-")
+    parent_zcml = dest / f"src/{package_folder}/configure.zcml"
+    snippet = (
+        "  <plone:static\n"
+        '      directory="theme"\n'
+        f'      name="{theme_id}"\n'
+        '      type="theme"\n'
+        "      />\n"
+    )
+    _, msg = extend_configure_zcml(
+        parent_zcml,
+        package_name or "package",
+        namespaces={"plone": "http://namespaces.plone.org/plone"},
+        element_tag="plone:static",
+        identifying_attr="name",
+        identifying_value=theme_id,
+        snippet=snippet,
+    )
+    print(msg)
 
 
 def main() -> None:

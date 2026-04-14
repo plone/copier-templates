@@ -8,9 +8,9 @@ _plonecli:
   description: "Add a Dexterity behavior"
 
 _tasks:
-  - command: "uv run --with tomlkit python3 {{ _copier_conf.src_path }}/copier_hooks.py validate '{{ _copier_conf.dst_path }}'"
+  - command: "uv run --no-project --with tomlkit python3 {{ _copier_conf.src_path }}/copier_hooks.py validate '{{ _copier_conf.dst_path }}'"
     when: "{{ _copier_conf.operation == 'copy' }}"
-  - "uv run --with tomlkit python3 {{ _copier_conf.src_path }}/copier_hooks.py post_copy '{{ _copier_conf.dst_path }}' '{{ behavior_name }}' '{{ behavior_interface }}' '{{ behavior_module }}' '{{ behavior_class }}' '{{ behavior_description }}' '{{ behavior_marker }}' '{{ behavior_factory }}'"
+  - "uv run --no-project --with tomlkit python3 {{ _copier_conf.src_path }}/copier_hooks.py post_copy '{{ _copier_conf.dst_path }}' '{{ behavior_name }}' '{{ behavior_interface }}' '{{ behavior_module }}' '{{ behavior_class }}' '{{ behavior_description }}' '{{ behavior_marker }}' '{{ behavior_factory }}'"
 
 # Behavior name
 behavior_name:

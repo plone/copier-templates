@@ -60,8 +60,10 @@ def post_copy(
     if not package_folder:
         return
 
+    cp_zcml = dest / f"src/{package_folder}/controlpanels/configure.zcml"
+
     # Extend controlpanels/configure.zcml with the <browser:page> entry
-    snippet = (
+    page_snippet = (
         "  <browser:page\n"
         f'      name="{controlpanel_url_id}"\n'
         '      for="Products.CMFPlone.interfaces.IPloneSiteRoot"\n'
@@ -69,7 +71,6 @@ def post_copy(
         '      permission="cmf.ManagePortal"\n'
         "      />\n"
     )
-    cp_zcml = dest / f"src/{package_folder}/controlpanels/configure.zcml"
     _, msg = extend_configure_zcml(
         cp_zcml,
         package_name or "package",
@@ -77,7 +78,28 @@ def post_copy(
         element_tag="browser:page",
         identifying_attr="name",
         identifying_value=controlpanel_url_id,
-        snippet=snippet,
+        snippet=page_snippet,
+    )
+    print(msg)
+
+    # Extend controlpanels/configure.zcml with the <adapter> entry (plone.restapi)
+    adapter_factory = f".{controlpanel_module}.{controlpanel_name}ControlPanelAdapter"
+    adapter_snippet = (
+        "  <adapter\n"
+        f'      factory="{adapter_factory}"\n'
+        '      provides="plone.restapi.interfaces.IControlpanel"\n'
+        '      for="Products.CMFPlone.interfaces.IPloneSiteRoot\n'
+        "           zope.interface.Interface\"\n"
+        "      />\n"
+    )
+    _, msg = extend_configure_zcml(
+        cp_zcml,
+        package_name or "package",
+        namespaces={},
+        element_tag="adapter",
+        identifying_attr="factory",
+        identifying_value=adapter_factory,
+        snippet=adapter_snippet,
     )
     print(msg)
 

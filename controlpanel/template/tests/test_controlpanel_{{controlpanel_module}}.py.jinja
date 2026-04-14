@@ -37,3 +37,17 @@ class TestControlPanel{{ controlpanel_name }}:
             name="{{ controlpanel_url_id }}",
         )
         assert view is not None
+
+    def test_restapi_controlpanel_adapter(self):
+        """Test plone.restapi control panel adapter is registered."""
+        from plone.restapi.interfaces import IControlpanel
+        from zope.component import getMultiAdapter
+        from zope.publisher.browser import TestRequest
+
+        request = TestRequest()
+        cp_adapter = getMultiAdapter(
+            (self.portal, request),
+            IControlpanel,
+            name="{{ controlpanel_url_id }}",
+        )
+        assert cp_adapter is not None

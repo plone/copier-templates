@@ -4,8 +4,11 @@
 """
 from plone.app.registry.browser.controlpanel import ControlPanelFormWrapper
 from plone.app.registry.browser.controlpanel import RegistryEditForm
+from plone.restapi.controlpanels import RegistryConfigletPanel
 from plone.supermodel import model
 from zope import schema
+from zope.component import adapter
+from zope.interface import Interface
 
 
 class I{{ controlpanel_name }}Settings(model.Schema):
@@ -39,3 +42,15 @@ class {{ controlpanel_name }}ControlPanelView(ControlPanelFormWrapper):
     """View wrapper exposing the form as a browser:page."""
 
     form = {{ controlpanel_name }}ControlPanelForm
+
+
+@adapter(Interface, Interface)
+class {{ controlpanel_name }}ControlPanelAdapter(RegistryConfigletPanel):
+    """plone.restapi adapter exposing the {{ controlpanel_name }} control panel."""
+
+    schema = I{{ controlpanel_name }}Settings
+    configlet_id = "{{ controlpanel_url_id }}"
+    configlet_category_id = "Products"
+    title = "{{ controlpanel_title }}"
+    group = "Products"
+    schema_prefix = "{{ package_name }}.{{ controlpanel_name | lower }}"

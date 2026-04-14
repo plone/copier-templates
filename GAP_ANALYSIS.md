@@ -252,7 +252,7 @@ modern approach:
 | portlet             | ✅  | ✅     | ✅    | ✅         | ✅     | |
 | restapi_service     | ✅  | ✅     | ✅    | ✅         | ✅     | FIXED: Added IExpandableElement option |
 | subscriber          | ✅  | ✅     | ✅    | ✅ Better  | ✅     | FIXED: Added browser layer guard |
-| controlpanel        | ✅  | ✅     | ✅    | ✅         | ⚠️     | Missing restapi adapter (low priority) |
+| controlpanel        | ✅  | ✅     | ✅    | ✅         | ✅     | FIXED: Added RegistryConfigletPanel restapi adapter |
 | upgrade_step        | ✅  | ✅     | ✅    | ✅ Better  | ✅     | FIXED: Added base.py, GS profile registration |
 | site_initialization | ✅  | ✅     | ✅ Neither | ✅    | ✅     | FIXED: Added available_languages |
 | theme               | ✅  | ✅     | ✅ Neither | ✅    | ✅     | Different build approach |

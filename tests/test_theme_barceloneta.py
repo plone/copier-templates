@@ -51,7 +51,7 @@ class TestThemeBarcelonetaCreation:
     ):
         self._apply(fresh_addon, theme_barceloneta_template)
         xml = fresh_addon / "src/collective/mypackage/profiles/default/theme.xml"
-        assert_file_exists(xml, content_contains="My Barceloneta Theme")
+        assert_file_exists(xml, content_contains="my-barceloneta-theme")
 
 
 class TestThemeBarcelonetaIntegration:

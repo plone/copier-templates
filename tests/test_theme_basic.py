@@ -59,7 +59,7 @@ class TestThemeBasicCreation:
     ):
         self._apply(fresh_addon, theme_basic_template)
         xml = fresh_addon / "src/collective/mypackage/profiles/default/theme.xml"
-        assert_file_exists(xml, content_contains="My Theme")
+        assert_file_exists(xml, content_contains="my-theme")
 
 
 class TestThemeBasicIntegration:

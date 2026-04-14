@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <theme>
-  <name>{{ theme_id }}</name>
+  <name>barceloneta</name>
   <enabled>true</enabled>
 </theme>

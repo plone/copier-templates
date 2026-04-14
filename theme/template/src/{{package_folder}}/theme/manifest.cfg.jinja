@@ -1,8 +1,14 @@
 [theme]
-title = {{ theme_name }}
-description = {{ theme_description }}
+title = Plone Theme: {{ theme_name }}
+description = A Diazo based Plone theme
+doctype = <!DOCTYPE html>
 rules = /++theme++{{ theme_id }}/rules.xml
 prefix = /++theme++{{ theme_id }}
-doctype = <!DOCTYPE html>
-enabled-bundles =
-disabled-bundles =
+
+production-css = ++theme++{{ theme_id }}/styles/theme.min.css
+tinymce-content-css = ++theme++{{ theme_id }}/styles/theme.min.css
+
+# production-js = ++theme++{{ theme_id }}/js/theme.min.js
+
+[theme:parameters]
+portal_url = python: portal.absolute_url()

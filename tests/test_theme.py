@@ -32,27 +32,25 @@ class TestThemeCreation:
         manifest = fresh_addon / "src/collective/mypackage/theme/manifest.cfg"
         assert_file_exists(manifest, content_contains="[theme]")
 
-    def test_creates_webpack_config(self, fresh_addon, theme_template):
+    def test_creates_rules_xml(self, fresh_addon, theme_template):
         self._apply(fresh_addon, theme_template)
-        webpack = fresh_addon / "src/collective/mypackage/theme/webpack.config.js"
-        assert_file_exists(webpack, content_contains="module.exports")
-
-    def test_creates_variables_partial(self, fresh_addon, theme_template):
-        self._apply(fresh_addon, theme_template)
-        variables = (
-            fresh_addon / "src/collective/mypackage/theme/scss/_variables.scss"
-        )
-        assert_file_exists(variables)
+        rules = fresh_addon / "src/collective/mypackage/theme/rules.xml"
+        assert_file_exists(rules, content_contains="diazo")
 
     def test_creates_theme_scss(self, fresh_addon, theme_template):
         self._apply(fresh_addon, theme_template)
-        scss = fresh_addon / "src/collective/mypackage/theme/scss/theme.scss"
+        scss = fresh_addon / "src/collective/mypackage/theme/styles/theme.scss"
         assert_file_exists(scss, content_contains="variables")
 
     def test_creates_theme_profile_xml(self, fresh_addon, theme_template):
         self._apply(fresh_addon, theme_template)
         xml = fresh_addon / "src/collective/mypackage/profiles/default/theme.xml"
-        assert_file_exists(xml, content_contains="My Theme")
+        assert_file_exists(xml, content_contains="my-theme")
+
+    def test_creates_tinymce_registry(self, fresh_addon, theme_template):
+        self._apply(fresh_addon, theme_template)
+        reg = fresh_addon / "src/collective/mypackage/profiles/default/registry/tinymce.xml"
+        assert_file_exists(reg, content_contains="bs-pricing.html")
 
 
 class TestThemeIntegration:

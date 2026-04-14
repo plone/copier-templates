@@ -1,8 +1,14 @@
 [theme]
-title = {{ theme_name }}
-description = {{ theme_description }}
-rules = /++theme++{{ theme_id }}/rules.xml
+title = Plone Theme: {{ theme_name }}
+description = A theme for Plone 6 Classic UI
+preview = preview.png
+rules = 
 prefix = /++theme++{{ theme_id }}
 doctype = <!DOCTYPE html>
+
 enabled-bundles =
 disabled-bundles =
+
+production-css = /++theme++{{ theme_id }}/css/theme.min.css
+tinymce-content-css = /++theme++{{ theme_id }}/css/theme.min.css
+production-js = /++theme++{{ theme_id }}/js/theme.min.js

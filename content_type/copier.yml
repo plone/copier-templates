@@ -2,6 +2,10 @@ _min_copier_version: "9.0.0"
 _subdirectory: template
 _answers_file: .copier-answers.content-type.yml
 
+_jinja_extensions:
+  - copier_template_extensions.TemplateExtensionLoader
+  - extensions.py:ParentPortalTypesHook
+
 _plonecli:
   type: sub
   parent: backend_addon
@@ -10,7 +14,7 @@ _plonecli:
 _tasks:
   - command: "uv run --no-project --with tomlkit python3 {{ _copier_conf.src_path }}/copier_hooks.py validate '{{ _copier_conf.dst_path }}'"
     when: "{{ _copier_conf.operation == 'copy' }}"
-  - "uv run --no-project --with tomlkit python3 {{ _copier_conf.src_path }}/copier_hooks.py post_copy '{{ _copier_conf.dst_path }}' '{{ content_type_name }}' '{{ content_type_description }}'"
+  - "uv run --no-project --with tomlkit python3 {{ _copier_conf.src_path }}/copier_hooks.py post_copy '{{ _copier_conf.dst_path }}' '{{ content_type_name }}' '{{ content_type_description }}' '{{ parent_content_type_resolved }}'"
 
 # Content type name
 content_type_name:
@@ -53,6 +57,26 @@ global_allow:
   type: bool
   help: "Should this type be globally addable?"
   default: true
+
+# Parent content type (only when global_allow = false)
+parent_content_type:
+  type: str
+  help: "Parent container portal type that should allow this new type"
+  default: "Folder"
+  choices: "{{ parent_content_type_choices }}"
+  when: "{{ not global_allow }}"
+
+parent_content_type_manual:
+  type: str
+  help: "Custom parent portal type name (e.g. 'MyContainer')"
+  default: ""
+  when: "{{ (not global_allow) and parent_content_type == '<enter manually>' }}"
+
+# Computed: resolve parent_content_type to the final value
+parent_content_type_resolved:
+  type: str
+  default: "{% if global_allow %}{% elif parent_content_type == '<enter manually>' %}{{ parent_content_type_manual }}{% else %}{{ parent_content_type }}{% endif %}"
+  when: false
 
 # Content type filtering (for Containers)
 filter_content_types:

@@ -11,7 +11,7 @@ from exceptions import AddonContextError, CopierTemplateError
 from hooks.addon_context import find_addon_context
 from hooks.git_check import warn_git_unclean
 from utils.pyproject_updater import PyprojectUpdater
-from utils.xml_updater import ConfigureZCMLUpdater, TypesXMLUpdater
+from utils.xml_updater import ConfigureZCMLUpdater, ParentFTIUpdater, TypesXMLUpdater
 
 
 def compute_content_type_values(content_type_name: str) -> dict:
@@ -52,12 +52,19 @@ def validate(dest_path: str) -> None:
         )
 
 
-def post_copy(dest_path: str, content_type_name: str, content_type_description: str = "A custom content type") -> None:
+def post_copy(
+    dest_path: str,
+    content_type_name: str,
+    content_type_description: str = "A custom content type",
+    parent_content_type: str = "",
+) -> None:
     """
     Post-copy tasks:
     1. Register content type in addon settings
     2. Update content/configure.zcml with behavior entry
     3. Update profiles/default/types.xml with FTI reference
+    4. If global_allow=false and parent_content_type is set, update the
+       parent FTI's allowed_content_types (when that FTI lives in this package).
     """
     # Copier runs tasks from the destination directory, so check CWD first
     cwd = Path.cwd()
@@ -137,7 +144,31 @@ def post_copy(dest_path: str, content_type_name: str, content_type_description: 
     else:
         print(f"FTI reference already exists in {types_path.relative_to(dest)}.")
 
-    # 4. Add include for content subpackage in parent configure.zcml
+    # 4. If not globally addable, update parent FTI's allowed_content_types
+    if parent_content_type:
+        # Parent FTI file name matches its portal type's "name" attribute —
+        # which for package-local types is the class (no spaces).
+        parent_fti_name = parent_content_type.replace(" ", "")
+        parent_fti_path = (
+            dest / f"src/{package_folder}/profiles/default/types/{parent_fti_name}.xml"
+        )
+        parent_updater = ParentFTIUpdater(parent_fti_path)
+        if parent_updater.exists():
+            if parent_updater.add_allowed_child(content_type_class):
+                parent_updater.save()
+                print(
+                    f"Added '{content_type_class}' to allowed_content_types of "
+                    f"parent '{parent_content_type}' in "
+                    f"{parent_fti_path.relative_to(dest)}."
+                )
+        else:
+            print(
+                f"Note: parent type '{parent_content_type}' is not defined in "
+                f"this package; configure its allowed_content_types manually "
+                f"to allow '{content_type_class}'."
+            )
+
+    # 5. Add include for content subpackage in parent configure.zcml
     parent_zcml = dest / f"src/{package_folder}/configure.zcml"
     if parent_zcml.exists():
         from utils.xml_updater import ParentZCMLUpdater
@@ -166,10 +197,19 @@ def main():
 
         elif command == "post_copy":
             if len(sys.argv) < 4:
-                print("Usage: tasks.py post_copy <dest_path> <content_type_name> [content_type_description]")
+                print(
+                    "Usage: tasks.py post_copy <dest_path> <content_type_name> "
+                    "[description] [content_type_class] [parent_content_type]"
+                )
                 sys.exit(1)
             content_type_description = sys.argv[4] if len(sys.argv) > 4 else "A custom content type"
-            post_copy(sys.argv[2], sys.argv[3], content_type_description)
+            parent_content_type = sys.argv[5] if len(sys.argv) > 5 else ""
+            post_copy(
+                sys.argv[2],
+                sys.argv[3],
+                content_type_description,
+                parent_content_type,
+            )
 
         else:
             print(f"Unknown command: {command}")

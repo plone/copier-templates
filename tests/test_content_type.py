@@ -225,6 +225,36 @@ class TestContentTypeEdgeCases:
         content = fti_file.read_text()
         assert "plone.dublincore" not in content
 
+    def test_not_global_allow_updates_parent_fti(self, addon_dir, content_type_template):
+        """When global_allow=False, parent FTI's allowed_content_types is updated."""
+        # Step 1: create a parent container type
+        run_copier(
+            content_type_template,
+            addon_dir,
+            data={"content_type_name": "Library"},
+        )
+
+        # Step 2: add a child type that is not globally addable, parented to Library
+        run_copier(
+            content_type_template,
+            addon_dir,
+            data={
+                "content_type_name": "Book",
+                "global_allow": False,
+                "parent_content_type": "Library",
+            },
+        )
+
+        parent_fti = addon_dir / "src/collective/mypackage/profiles/default/types/Library.xml"
+        assert_file_exists(parent_fti)
+        content = parent_fti.read_text()
+        assert '<element value="Book"' in content
+        assert 'allowed_content_types' in content
+
+        # Child's own FTI records global_allow=False
+        child_fti = addon_dir / "src/collective/mypackage/profiles/default/types/Book.xml"
+        assert '<property name="global_allow">False</property>' in child_fti.read_text()
+
     def test_disable_navigation(self, addon_dir, content_type_template):
         """Content type without navigation behavior."""
         run_copier(

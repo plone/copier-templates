@@ -359,6 +359,92 @@ class TypesXMLUpdater:
             self.path.write_text(self._content)
 
 
+class ParentFTIUpdater:
+    """Updates a parent type FTI XML to allow a new child portal type.
+
+    Inserts ``<element value="ChildType" />`` inside the parent's
+    ``allowed_content_types`` property. If the property is missing or
+    self-closing, it is expanded to an opening/closing form.
+    """
+
+    def __init__(self, path: Path | str):
+        self.path = Path(path)
+        self._content: str | None = None
+        self._modified = False
+
+    def exists(self) -> bool:
+        return self.path.exists()
+
+    def load(self) -> str:
+        if self._content is None:
+            self._content = self.path.read_text() if self.path.exists() else ""
+        return self._content
+
+    def has_allowed_child(self, child_type: str) -> bool:
+        content = self.load()
+        escaped = re.escape(child_type)
+        pattern = (
+            r'<property\s+name\s*=\s*"allowed_content_types"[^>]*>'
+            r'[\s\S]*?<element\s+value\s*=\s*"' + escaped + r'"\s*/>'
+            r'[\s\S]*?</property>'
+        )
+        return bool(re.search(pattern, content))
+
+    def add_allowed_child(self, child_type: str) -> bool:
+        """Add ``child_type`` to ``allowed_content_types``. Return True on change."""
+        if not self.path.exists():
+            return False
+        content = self.load()
+        if self.has_allowed_child(child_type):
+            return False
+
+        element = f'    <element value="{child_type}"/>'
+
+        # Case 1: self-closing <property name="allowed_content_types"/>
+        self_closing = re.compile(
+            r'(\s*)<property\s+name\s*=\s*"allowed_content_types"\s*/>'
+        )
+        match = self_closing.search(content)
+        if match:
+            indent = match.group(1).lstrip("\n")
+            replacement = (
+                f'{match.group(1)}<property name="allowed_content_types">\n'
+                f'{indent}{element}\n'
+                f'{indent}</property>'
+            )
+            self._content = content[: match.start()] + replacement + content[match.end():]
+            self._modified = True
+            return True
+
+        # Case 2: existing open/close <property name="allowed_content_types">...</property>
+        open_close = re.compile(
+            r'(<property\s+name\s*=\s*"allowed_content_types"[^>]*>)'
+            r'([\s\S]*?)(</property>)'
+        )
+        match = open_close.search(content)
+        if match:
+            inner = match.group(2)
+            if inner.strip():
+                new_inner = inner.rstrip() + f"\n{element}\n  "
+            else:
+                new_inner = f"\n{element}\n  "
+            self._content = (
+                content[: match.start()]
+                + match.group(1)
+                + new_inner
+                + match.group(3)
+                + content[match.end():]
+            )
+            self._modified = True
+            return True
+
+        return False
+
+    def save(self) -> None:
+        if self._modified and self._content is not None:
+            self.path.write_text(self._content)
+
+
 class MetadataXMLUpdater:
     """Reads and updates profiles/default/metadata.xml version."""
 

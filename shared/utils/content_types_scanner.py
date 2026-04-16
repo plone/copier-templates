@@ -7,7 +7,20 @@ the new artifact can be registered for.
 from __future__ import annotations
 
 import ast
+import xml.etree.ElementTree as ET
 from pathlib import Path
+
+# Default Plone portal types that ship with plone.app.contenttypes.
+DEFAULT_PORTAL_TYPES: list[str] = [
+    "Document",
+    "File",
+    "Image",
+    "News Item",
+    "Event",
+    "Link",
+    "Folder",
+    "Collection",
+]
 
 # Default Plone content type interfaces that are always available
 # regardless of what the current package provides.
@@ -128,6 +141,50 @@ def all_content_type_interfaces(
     combined: list[str] = []
     seen: set[str] = set()
     for item in list(DEFAULT_CONTENT_TYPE_INTERFACES) + found:
+        if item not in seen:
+            seen.add(item)
+            combined.append(item)
+    return combined
+
+
+def scan_package_portal_types(
+    dest: Path, package_folder: str | None = None
+) -> list[str]:
+    """Return portal type names registered in the current package.
+
+    Reads the ``name`` attribute of the root object in every
+    ``src/{package_folder}/profiles/default/types/*.xml`` FTI file.
+    """
+    dest = Path(dest)
+    if package_folder is None:
+        package_folder = _package_folder_from_pyproject(dest)
+    if not package_folder:
+        return []
+
+    types_dir = dest / "src" / package_folder / "profiles" / "default" / "types"
+    if not types_dir.is_dir():
+        return []
+
+    found: list[str] = []
+    for xml_file in sorted(types_dir.glob("*.xml")):
+        try:
+            root = ET.parse(xml_file).getroot()
+        except ET.ParseError:
+            continue
+        name = root.get("name")
+        if name:
+            found.append(name)
+    return found
+
+
+def all_portal_types(
+    dest: Path, package_folder: str | None = None
+) -> list[str]:
+    """Default Plone portal types + portal types discovered in the current package."""
+    found = scan_package_portal_types(dest, package_folder)
+    combined: list[str] = []
+    seen: set[str] = set()
+    for item in list(DEFAULT_PORTAL_TYPES) + found:
         if item not in seen:
             seen.add(item)
             combined.append(item)

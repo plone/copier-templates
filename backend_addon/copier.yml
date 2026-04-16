@@ -4,8 +4,7 @@ _answers_file: .copier-answers.yml
 
 _plonecli:
   type: main
-  aliases:
-    - addon
+  aliases: []
   description: "Create a Plone backend addon package"
 _jinja_extensions:
   - copier_template_extensions.TemplateExtensionLoader

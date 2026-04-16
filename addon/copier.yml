@@ -1,0 +1,8 @@
+_plonecli:
+  type: composite
+  templates:
+    - backend_addon
+    - zope-setup
+  aliases:
+    - add-on
+  description: "Create a Plone backend addon with Zope setup included"

@@ -146,12 +146,15 @@ def post_copy(
 
     # 4. If not globally addable, update parent FTI's allowed_content_types
     if parent_content_type:
-        # Parent FTI file name matches its portal type's "name" attribute —
-        # which for package-local types is the class (no spaces).
+        types_dir = dest / f"src/{package_folder}/profiles/default/types"
+        # Try package-local naming (no spaces) first, then GenericSetup
+        # convention (spaces → underscores) for default Plone types.
         parent_fti_name = parent_content_type.replace(" ", "")
-        parent_fti_path = (
-            dest / f"src/{package_folder}/profiles/default/types/{parent_fti_name}.xml"
-        )
+        parent_fti_path = types_dir / f"{parent_fti_name}.xml"
+        if not parent_fti_path.exists():
+            parent_fti_name = parent_content_type.replace(" ", "_")
+            parent_fti_path = types_dir / f"{parent_fti_name}.xml"
+
         parent_updater = ParentFTIUpdater(parent_fti_path)
         if parent_updater.exists():
             if parent_updater.add_allowed_child(content_type_class):
@@ -162,9 +165,13 @@ def post_copy(
                     f"{parent_fti_path.relative_to(dest)}."
                 )
         else:
+            # Parent FTI doesn't exist locally — create a minimal override
+            # with purge="False" so it only appends to the allowed list.
+            parent_updater.create_minimal(parent_content_type, content_type_class)
+            parent_updater.save()
             print(
-                f"Note: parent type '{parent_content_type}' is not defined in "
-                f"this package; configure its allowed_content_types manually "
+                f"Created minimal FTI override for '{parent_content_type}' "
+                f"at {parent_fti_path.relative_to(dest)} "
                 f"to allow '{content_type_class}'."
             )
 

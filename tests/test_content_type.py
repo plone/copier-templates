@@ -255,6 +255,39 @@ class TestContentTypeEdgeCases:
         child_fti = addon_dir / "src/collective/mypackage/profiles/default/types/Book.xml"
         assert '<property name="global_allow">False</property>' in child_fti.read_text()
 
+        # Step 3: add a second child — both should appear with consistent indent
+        run_copier(
+            content_type_template,
+            addon_dir,
+            data={
+                "content_type_name": "Chapter",
+                "global_allow": False,
+                "parent_content_type": "Library",
+            },
+        )
+        content = parent_fti.read_text()
+        assert '<element value="Book"/>' in content
+        assert '<element value="Chapter"/>' in content
+
+    def test_not_global_allow_creates_parent_fti_override(self, addon_dir, content_type_template):
+        """When parent is a default Plone type, a minimal FTI override is created."""
+        run_copier(
+            content_type_template,
+            addon_dir,
+            data={
+                "content_type_name": "Widget",
+                "global_allow": False,
+                "parent_content_type": "Folder",
+            },
+        )
+
+        parent_fti = addon_dir / "src/collective/mypackage/profiles/default/types/Folder.xml"
+        assert parent_fti.exists(), "Minimal FTI override should be created"
+        content = parent_fti.read_text()
+        assert 'name="Folder"' in content
+        assert 'purge="False"' in content
+        assert '<element value="Widget"/>' in content
+
     def test_disable_navigation(self, addon_dir, content_type_template):
         """Content type without navigation behavior."""
         run_copier(

@@ -363,9 +363,20 @@ class ParentFTIUpdater:
     """Updates a parent type FTI XML to allow a new child portal type.
 
     Inserts ``<element value="ChildType" />`` inside the parent's
-    ``allowed_content_types`` property. If the property is missing or
-    self-closing, it is expanded to an opening/closing form.
+    ``allowed_content_types`` property.  When the parent FTI file does
+    not exist yet (e.g. for default Plone types), a minimal override is
+    created with ``purge="False"`` so it only appends without replacing
+    the type's existing allowed list.
     """
+
+    MINIMAL_FTI_TEMPLATE = '''\
+<?xml version="1.0" encoding="UTF-8"?>
+<object name="{portal_type}" meta_type="Dexterity FTI">
+  <property name="allowed_content_types" purge="False">
+    <element value="{child_type}"/>
+  </property>
+</object>
+'''
 
     def __init__(self, path: Path | str):
         self.path = Path(path)
@@ -390,6 +401,15 @@ class ParentFTIUpdater:
         )
         return bool(re.search(pattern, content))
 
+    def create_minimal(self, portal_type: str, child_type: str) -> None:
+        """Create a minimal FTI override that only appends to allowed_content_types."""
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        self._content = self.MINIMAL_FTI_TEMPLATE.format(
+            portal_type=portal_type,
+            child_type=child_type,
+        )
+        self._modified = True
+
     def add_allowed_child(self, child_type: str) -> bool:
         """Add ``child_type`` to ``allowed_content_types``. Return True on change."""
         if not self.path.exists():
@@ -398,41 +418,44 @@ class ParentFTIUpdater:
         if self.has_allowed_child(child_type):
             return False
 
-        element = f'    <element value="{child_type}"/>'
-
         # Case 1: self-closing <property name="allowed_content_types"/>
         self_closing = re.compile(
-            r'(\s*)<property\s+name\s*=\s*"allowed_content_types"\s*/>'
+            r'([ \t]*)<property\s+name\s*=\s*"allowed_content_types"\s*/>'
         )
         match = self_closing.search(content)
         if match:
-            indent = match.group(1).lstrip("\n")
+            prop_indent = match.group(1)
+            elem_indent = prop_indent + "  "
             replacement = (
-                f'{match.group(1)}<property name="allowed_content_types">\n'
-                f'{indent}{element}\n'
-                f'{indent}</property>'
+                f'{prop_indent}<property name="allowed_content_types">\n'
+                f'{elem_indent}<element value="{child_type}"/>\n'
+                f'{prop_indent}</property>'
             )
             self._content = content[: match.start()] + replacement + content[match.end():]
             self._modified = True
             return True
 
-        # Case 2: existing open/close <property name="allowed_content_types">...</property>
+        # Case 2: existing open/close <property ...>...</property>
         open_close = re.compile(
-            r'(<property\s+name\s*=\s*"allowed_content_types"[^>]*>)'
+            r'([ \t]*)(<property\s+name\s*=\s*"allowed_content_types"[^>]*>)'
             r'([\s\S]*?)(</property>)'
         )
         match = open_close.search(content)
         if match:
-            inner = match.group(2)
+            prop_indent = match.group(1)
+            elem_indent = prop_indent + "  "
+            opening_tag = match.group(2)
+            inner = match.group(3)
+            new_element = f'{elem_indent}<element value="{child_type}"/>'
             if inner.strip():
-                new_inner = inner.rstrip() + f"\n{element}\n  "
+                new_inner = inner.rstrip() + f"\n{new_element}\n{prop_indent}"
             else:
-                new_inner = f"\n{element}\n  "
+                new_inner = f"\n{new_element}\n{prop_indent}"
             self._content = (
                 content[: match.start()]
-                + match.group(1)
+                + prop_indent + opening_tag
                 + new_inner
-                + match.group(3)
+                + match.group(4)
                 + content[match.end():]
             )
             self._modified = True

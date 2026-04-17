@@ -47,6 +47,43 @@ def create_instance(c, name="instance", port=8080):
     c.run(cmd)
 
 
+RECONFIGURE_TARGETS = {
+    "addon": {
+        "answers_file": ".copier-answers.yml",
+        "template": "~/.copier-templates/plone-copier-templates/backend_addon",
+    },
+    "zope-setup": {
+        "answers_file": ".copier-answers.zope-setup.yml",
+        "template": "~/.copier-templates/plone-copier-templates/zope-setup",
+    },
+    "instance": {
+        "answers_file": ".copier-answers.zope-instance-{name}.yml",
+        "template": "~/.copier-templates/plone-copier-templates/zope_instance",
+    },
+}
+
+
+@task
+def reconfigure(c, target="instance", name="instance"):
+    """Reconfigure a template target (re-asks all questions).
+
+    Targets: addon, zope-setup, instance
+    Use --name for instance targets (e.g. --name=instance2).
+    """
+    if target not in RECONFIGURE_TARGETS:
+        print(f"Unknown target: {target}")
+        print(f"Available targets: {', '.join(RECONFIGURE_TARGETS)}")
+        return
+    config = RECONFIGURE_TARGETS[target]
+    answers_file = config["answers_file"].format(name=name)
+    cmd = (
+        f"copier recopy --trust --overwrite "
+        f"-a {answers_file} "
+        f"{config['template']} ."
+    )
+    c.run(cmd, pty=True)
+
+
 @task
 def create_site(c, site_id="Plone", instance="instance"):
     """Create a new Plone site."""

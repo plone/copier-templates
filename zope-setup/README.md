@@ -5,7 +5,7 @@ Creates a complete Plone/Zope project structure. Can be used standalone or insid
 ## What it generates
 
 - `pyproject.toml` with Plone dependencies and `[tool.uv]` constraints
-- Invoke tasks for common operations (`install`, `start`, `debug`, `test`, `create_site`, `create_instance`)
+- Invoke tasks for common operations (`install`, `start`, `debug`, `test`, `create_site`, `create_instance`, `reconfigure`)
 - GitHub Actions CI workflow
 - `.gitignore` configured for Plone/Zope
 - Project settings in `[tool.plone.project.settings]`
@@ -32,6 +32,32 @@ After rendering the project files, zope-setup automatically invokes the `zope_in
 | `author_email` | Author email | `dev@plone.org` |
 | `initial_zope_username` | Initial Zope admin username | `admin` |
 | `initial_user_password` | Initial Zope admin password (secret) | `admin` |
+
+## Reconfiguring templates
+
+After initial project creation, you can re-run any main template's questions to change settings using `invoke reconfigure`. This uses `copier recopy` under the hood and will overwrite generated config files with the new values.
+
+```bash
+# Reconfigure the backend addon (package metadata, author, etc.)
+invoke reconfigure --target=addon
+
+# Reconfigure zope-setup (Plone version, database storage, etc.)
+invoke reconfigure --target=zope-setup
+
+# Reconfigure a Zope instance (port, database connection, etc.)
+invoke reconfigure --target=instance
+
+# Reconfigure a specific named instance
+invoke reconfigure --target=instance --name=instance2
+```
+
+Available targets:
+
+| Target | What it reconfigures | Answers file |
+|--------|---------------------|--------------|
+| `addon` | Backend addon package settings | `.copier-answers.yml` |
+| `zope-setup` | Project-level Plone/Zope settings | `.copier-answers.zope-setup.yml` |
+| `instance` | Zope instance configuration (port, DB, credentials) | `.copier-answers.zope-instance-<name>.yml` |
 
 ## Database storage modes
 

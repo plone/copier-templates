@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+<registry>
+
+  <records
+      interface="Products.CMFPlone.interfaces.IBundleRegistry"
+      prefix="plone.bundles/{{ package_module }}">
+    <value key="enabled">True</value>
+    <value key="jscompilation">++plone++{{ package_name }}/bundles/{{ package_module }}-remote.min.js</value>
+  </records>
+
+</registry>

@@ -32,3 +32,8 @@ package_folder:
   type: str
   help: "Parent addon package folder (e.g., collective/mypackage)"
   default: "{{ package_name | replace('.', '/') }}"
+
+package_module:
+  type: str
+  default: "{{ package_name.split('.')[-1] }}"
+  when: false

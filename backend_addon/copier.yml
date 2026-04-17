@@ -75,6 +75,11 @@ package_module:
   default: "{{ package_name.split('.')[-1] }}"
   when: false
 
+browser_layer_name:
+  type: str
+  default: "I{{ package_name.replace('.', ' ').replace('_', ' ').title().replace(' ', '') }}Layer"
+  when: false
+
 current_year:
   type: str
   default: "{{ '%Y' | strftime }}"

@@ -456,7 +456,7 @@ class TestZopeSetupOnAddon:
 
         # Original addon deps preserved
         assert any("Plone" in d for d in deps)
-        assert "setuptools" in deps
+        assert any(d == "setuptools" or d.startswith("setuptools<") or d.startswith("setuptools>") or d.startswith("setuptools=") for d in deps)
 
     def test_addon_then_zope_then_content_type(
         self,

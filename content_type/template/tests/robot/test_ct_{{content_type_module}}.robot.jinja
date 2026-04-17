@@ -1,0 +1,80 @@
+# ============================================================================
+# DEXTERITY ROBOT TESTS
+# ============================================================================
+#
+# Run this robot test stand-alone:
+#
+#  $ bin/test -s {{ package_name }} -t test_ct_{{ content_type_module }}.robot --all
+#
+# Run this robot test with robot server (which is faster):
+#
+# 1) Start robot server:
+#
+# $ bin/robot-server --reload-path src {{ package_name }}.testing.{{ package_name.replace('.', '_').upper() }}_ACCEPTANCE_TESTING
+#
+# 2) Run robot tests:
+#
+# $ bin/robot tests/robot/test_ct_{{ content_type_module }}.robot
+#
+# See the http://docs.plone.org for further details (search for robot
+# framework).
+#
+# ============================================================================
+
+*** Settings *****************************************************************
+
+Resource  plone/app/robotframework/selenium.robot
+Resource  plone/app/robotframework/keywords.robot
+
+Library  Remote  ${PLONE_URL}/RobotRemote
+
+Test Setup  Open test browser
+Test Teardown  Close all browsers
+
+
+*** Test Cases ***************************************************************
+
+Scenario: As a site administrator I can add a {{ content_type_class }}
+  Given a logged-in site administrator
+    and an add {{ content_type_class }} form
+   When I type 'My {{ content_type_class }}' into the title field
+    and I submit the form
+   Then a {{ content_type_class }} with the title 'My {{ content_type_class }}' has been created
+
+
+*** Keywords *****************************************************************
+
+# --- GIVEN ------------------------------------------------------------------
+
+a logged-in site administrator
+  Enable autologin as  Site Administrator
+
+an add {{ content_type_class }} form
+  Go To  ${PLONE_URL}/++add++{{ content_type_class }}
+
+a {{ content_type_class }} '${title}'
+  Create content  type={{ content_type_class }}  id=my-{{ content_type_module }}  title=${title}
+
+# --- WHEN -------------------------------------------------------------------
+
+I type '${title}' into the title field
+  Input Text  name=form.widgets.IBasic.title  ${title}
+
+I submit the form
+  Click Button  Save
+
+I go to the {{ content_type_class }} view
+  Go To  ${PLONE_URL}/my-{{ content_type_module }}
+  Wait until page contains  Site Map
+
+
+# --- THEN -------------------------------------------------------------------
+
+a {{ content_type_class }} with the title '${title}' has been created
+  Wait until page contains  Site Map
+  Page should contain  ${title}
+  Page should contain  Item created
+
+I can see the {{ content_type_class }} title '${title}'
+  Wait until page contains  Site Map
+  Page should contain  ${title}

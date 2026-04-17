@@ -36,6 +36,50 @@ def compute_content_type_values(content_type_name: str) -> dict:
     }
 
 
+MARKER = "<!-- -*- extra stuff goes here -*- -->"
+
+
+def _register_add_permission(
+    permissions_path: Path,
+    rolemap_path: Path,
+    package_name: str,
+    content_type_class: str,
+) -> None:
+    """Add ``Add <Type>`` permission declarations to permissions.zcml and rolemap.xml."""
+    permission_id = f"{package_name}.Add{content_type_class}"
+    permission_title = f"{package_name}: Add {content_type_class}"
+
+    if permissions_path.exists():
+        text = permissions_path.read_text()
+        if permission_id not in text:
+            snippet = (
+                f'{MARKER}\n\n'
+                f'    <permission\n'
+                f'        id="{permission_id}"\n'
+                f'        title="{permission_title}"\n'
+                f'    />\n'
+            )
+            text = text.replace(MARKER, snippet, 1)
+            permissions_path.write_text(text)
+            print(f"Registered '{permission_title}' in permissions.zcml.")
+
+    if rolemap_path.exists():
+        text = rolemap_path.read_text()
+        if permission_title not in text:
+            snippet = (
+                f'{MARKER}\n\n'
+                f'    <permission name="{permission_title}" acquire="True">\n'
+                f'      <role name="Manager"/>\n'
+                f'      <role name="Site Administrator"/>\n'
+                f'      <role name="Owner"/>\n'
+                f'      <role name="Contributor"/>\n'
+                f'    </permission>\n'
+            )
+            text = text.replace(MARKER, snippet, 1)
+            rolemap_path.write_text(text)
+            print(f"Registered '{permission_title}' in rolemap.xml.")
+
+
 def validate(dest_path: str) -> None:
     """Validate that parent addon exists."""
     dest = Path(dest_path)
@@ -184,6 +228,14 @@ def post_copy(
             parent_updater.add_include(".content")
             parent_updater.save()
             print("Added <include package=\".content\" /> to parent configure.zcml.")
+
+    # 6. Register the Add permission in permissions.zcml and rolemap.xml.
+    _register_add_permission(
+        dest / f"src/{package_folder}/permissions.zcml",
+        dest / f"src/{package_folder}/profiles/default/rolemap.xml",
+        package_name,
+        content_type_class,
+    )
 
 
 def main():

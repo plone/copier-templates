@@ -39,6 +39,7 @@ def post_copy(
     view_module: str = "",
     view_class_name: str = "",
     view_template: str = "True",
+    view_marker: str = "False",
 ) -> None:
     dest = _resolve_dest(dest_path)
     pyproject_path = dest / "pyproject.toml"

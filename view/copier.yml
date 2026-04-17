@@ -16,7 +16,7 @@ _tasks:
     when: "{{ _copier_conf.operation == 'copy' }}"
   - command: "rm -f '{{ _copier_conf.dst_path }}/src/{{ package_folder }}/views/{{ view_module }}.pt'"
     when: "{{ not view_template }}"
-  - "uv run --no-project --with tomlkit python3 {{ _copier_conf.src_path }}/copier_hooks.py post_copy '{{ _copier_conf.dst_path }}' '{{ view_name }}' '{{ view_for_interface }}' '{{ view_module }}' '{{ view_class_name }}' '{{ view_template }}'"
+  - "uv run --no-project --with tomlkit python3 {{ _copier_conf.src_path }}/copier_hooks.py post_copy '{{ _copier_conf.dst_path }}' '{{ view_name }}' '{{ view_for_interface }}' '{{ view_module }}' '{{ view_class_name }}' '{{ view_template }}' '{{ view_marker }}'"
 
 # URL identifier for the view
 view_name:
@@ -62,6 +62,11 @@ view_for_interface:
   type: str
   default: "{{ view_for_manual if view_for == '<enter manually>' else view_for }}"
   when: false
+
+view_marker:
+  type: bool
+  help: "Generate a marker interface for the view?"
+  default: false
 
 view_description:
   type: str

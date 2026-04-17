@@ -8,6 +8,9 @@ from zope.component import getMultiAdapter
 from zope.publisher.browser import TestRequest
 
 from {{ package_name }}.testing import INTEGRATION_TESTING
+{%- if view_marker %}
+from {{ package_name }}.views.{{ view_module }} import I{{ view_class_name }}
+{%- endif %}
 
 
 class TestView{{ view_class_name }}:
@@ -43,3 +46,14 @@ class TestView{{ view_class_name }}:
             name="{{ view_name }}",
         )
         assert view.__name__ == "{{ view_name }}"
+{%- if view_marker %}
+
+    def test_view_marker_interface(self):
+        """Test view provides marker interface."""
+        request = TestRequest()
+        view = getMultiAdapter(
+            (self.doc, request),
+            name="{{ view_name }}",
+        )
+        assert I{{ view_class_name }}.providedBy(view)
+{%- endif %}

@@ -40,7 +40,7 @@ package_description:
 plone_version:
   type: str
   help: "Minimum Plone version supported"
-  default: "{{ plone_versions_minor[0] }}"
+  default: "{{ plone_versions_minor[-1] }}"
   choices: "{{ plone_versions_minor }}"
 
 is_headless:

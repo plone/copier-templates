@@ -65,6 +65,7 @@ base_path:
   type: str
   help: "Base directory for runtime instances and servers (relative to project root)"
   default: "var"
+  when: "{{ not addon_context }}"
 
 # Database configuration
 db_storage:
@@ -75,6 +76,7 @@ db_storage:
     - "instance"
     - "relstorage"
     - "zeo"
+  when: "{{ not addon_context }}"
 
 # ZEO connection settings (passed to zope_instance)
 zeo_address:

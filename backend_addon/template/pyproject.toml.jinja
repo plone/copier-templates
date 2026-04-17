@@ -25,7 +25,7 @@ keywords = ["Plone", "CMS"]
 
 dependencies = [
     "Plone>={{ plone_version }}",
-    "setuptools",
+    "setuptools<81",
 {%- if is_headless %}
     "plone.restapi",
 {%- endif %}

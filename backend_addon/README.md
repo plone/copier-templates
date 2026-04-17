@@ -35,7 +35,7 @@ Addon settings are stored in `[tool.plone.backend_addon.settings]` in `pyproject
 | `package_name` | Python package name (e.g., `collective.mypackage`) | Directory name |
 | `package_title` | Human-readable title | Auto-generated from package name |
 | `package_description` | Short description | `A Plone addon package` |
-| `plone_version` | Minimum Plone version (`6.1`, `6.0`) | `6.1` |
+| `plone_version` | Minimum Plone version (`6.1`, `6.0`) | `6.0` |
 | `is_headless` | Headless/API-only addon | `false` |
 | `author_name` | Author name | `Plone Developer` |
 | `author_email` | Author email | `dev@plone.org` |

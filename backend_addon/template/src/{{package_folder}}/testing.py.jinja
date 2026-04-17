@@ -6,6 +6,9 @@ from plone.app.testing import SITE_OWNER_NAME
 from plone.app.testing import SITE_OWNER_PASSWORD
 from plone.testing.zope import WSGI_SERVER_FIXTURE
 
+import plone.app.theming
+import plone.restapi
+
 import {{ package_name }}
 
 
@@ -14,6 +17,8 @@ class {{ package_name.replace('.', ' ').title().replace(' ', '') }}Layer(PloneSa
 
     def setUpZope(self, app, configurationContext):
         """Set up Zope."""
+        self.loadZCML(package=plone.app.theming)
+        self.loadZCML(package=plone.restapi)
         self.loadZCML(package={{ package_name }})
 
     def setUpPloneSite(self, portal):

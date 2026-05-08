@@ -9,12 +9,19 @@ if _shared_dir not in sys.path:
 
 from exceptions import AddonContextError, CopierTemplateError, ValidationError
 
-from .addon_context import find_addon_context, require_addon_context
+from .addon_context import (
+    AddonContext,
+    find_addon_context,
+    require_addon_context,
+    resolve_post_copy_context,
+)
 from .git_check import check_git_status, require_clean_git, warn_git_unclean
 
 __all__ = [
+    "AddonContext",
     "find_addon_context",
     "require_addon_context",
+    "resolve_post_copy_context",
     "check_git_status",
     "require_clean_git",
     "warn_git_unclean",

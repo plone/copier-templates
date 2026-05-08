@@ -1,17 +1,22 @@
 #!/usr/bin/env python3
 """Tasks for upgrade_step subtemplate."""
-import re
 import sys
 from pathlib import Path
 
 # Add shared module to path
 sys.path.insert(0, str(Path(__file__).parent.parent / "shared"))
 
-from exceptions import AddonContextError, CopierTemplateError
-from hooks.addon_context import find_addon_context
-from hooks.git_check import warn_git_unclean
-from utils.pyproject_updater import PyprojectUpdater
-from utils.xml_updater import MetadataXMLUpdater, UpgradeZCMLUpdater
+from exceptions import AddonContextError, CopierTemplateError  # noqa: E402
+from hooks.addon_context import (  # noqa: E402
+    find_addon_context,
+    resolve_post_copy_context,
+)
+from hooks.git_check import warn_git_unclean  # noqa: E402
+from utils.xml_updater import (  # noqa: E402
+    MetadataXMLUpdater,
+    ParentZCMLUpdater,
+    UpgradeZCMLUpdater,
+)
 
 
 def validate(dest_path: str) -> None:
@@ -37,99 +42,71 @@ def post_copy(
     source_version: str,
     destination_version: str,
 ) -> None:
+    """Wire the new upgrade step files into the addon configuration.
+
+    Works for both modern (pyproject.toml) and legacy (bobtemplate.cfg /
+    setup.py) packages.
     """
-    Post-copy tasks:
-    1. Register upgrade step in addon settings
-    2. Update upgrades/configure.zcml with upgrade step entry
-    3. Add include for upgrades subpackage in parent configure.zcml
-    4. Bump profile version in metadata.xml
-    """
-    cwd = Path.cwd()
-    dest = Path(dest_path)
-
-    if (cwd / "pyproject.toml").exists():
-        dest = cwd
-    elif not dest.is_absolute():
-        dest = dest.resolve()
-
-    pyproject_path = dest / "pyproject.toml"
-
-    if not pyproject_path.exists():
-        print(f"Warning: pyproject.toml not found at {pyproject_path}")
-        return
-
-    # Get package info from pyproject.toml
-    updater = PyprojectUpdater(pyproject_path)
-    addon_settings = updater.get_addon_settings()
-    package_name = addon_settings.get("package_name", "")
-
-    if not package_name:
-        pyproject_content = pyproject_path.read_text()
-        match = re.search(
-            r'^\s*package_name\s*=\s*["\']([^"\']+)["\']',
-            pyproject_content,
-            re.MULTILINE,
+    ctx = resolve_post_copy_context(dest_path)
+    if ctx is None:
+        print(
+            "Warning: could not detect parent addon (no pyproject.toml, "
+            "bobtemplate.cfg, or setup.py). Skipping configuration updates."
         )
-        if match:
-            package_name = match.group(1)
-        else:
-            match = re.search(
-                r'^\s*name\s*=\s*["\']([^"\']+)["\']',
-                pyproject_content,
-                re.MULTILINE,
-            )
-            if match:
-                package_name = match.group(1)
-
-    if not package_name:
-        print("Warning: Could not determine package_name from pyproject.toml")
         return
 
-    package_folder = addon_settings.get(
-        "package_folder", package_name.replace(".", "/")
-    )
+    if not ctx.package_folder:
+        print("Warning: could not determine package_folder. Skipping updates.")
+        return
 
-    # 1. Register upgrade step in addon settings
-    updater.register_subtemplate("upgrade_steps", upgrade_step_title)
-    updater.save()
-    print(f"Registered upgrade step '{upgrade_step_title}' in addon settings.")
+    if ctx.register_subtemplate("upgrade_steps", upgrade_step_title):
+        print(
+            f"Registered upgrade step '{upgrade_step_title}' in "
+            f"addon settings."
+        )
 
-    # 2. Add include for per-step ZCML in upgrades/configure.zcml
-    zcml_path = dest / f"src/{package_folder}/upgrades/configure.zcml"
+    # Add include for per-step ZCML in upgrades/configure.zcml
+    zcml_path = ctx.dest / f"src/{ctx.package_folder}/upgrades/configure.zcml"
     zcml_updater = UpgradeZCMLUpdater(zcml_path)
-    zcml_updater.create_if_missing(package_name)
+    zcml_updater.create_if_missing(ctx.package_name or "package")
     step_zcml = f"{destination_version}.zcml"
     if not zcml_updater.has_file_include(step_zcml):
         zcml_updater.add_file_include(step_zcml)
         zcml_updater.save()
         print(
-            f"Updated {zcml_path.relative_to(dest)} with "
+            f"Updated {zcml_path.relative_to(ctx.dest)} with "
             f'<include file="{step_zcml}" />.'
         )
     else:
         print(
-            f'Include for "{step_zcml}" '
-            f"already exists in {zcml_path.relative_to(dest)}."
+            f'Include for "{step_zcml}" already exists in '
+            f"{zcml_path.relative_to(ctx.dest)}."
         )
 
-    # 3. Add include for upgrades subpackage in parent configure.zcml
-    parent_zcml = dest / f"src/{package_folder}/configure.zcml"
+    # Add include for upgrades subpackage in parent configure.zcml
+    parent_zcml = ctx.dest / f"src/{ctx.package_folder}/configure.zcml"
     if parent_zcml.exists():
-        from utils.xml_updater import ParentZCMLUpdater
-
         parent_updater = ParentZCMLUpdater(parent_zcml)
         if not parent_updater.has_include(".upgrades"):
             parent_updater.add_include(".upgrades")
             parent_updater.save()
-            print('Added <include package=".upgrades" /> to parent configure.zcml.')
+            print(
+                'Added <include package=".upgrades" /> to parent '
+                "configure.zcml."
+            )
 
-    # 4. Bump profile version in metadata.xml
-    metadata_path = dest / f"src/{package_folder}/profiles/default/metadata.xml"
+    # Bump profile version in metadata.xml
+    metadata_path = (
+        ctx.dest / f"src/{ctx.package_folder}/profiles/default/metadata.xml"
+    )
     metadata_updater = MetadataXMLUpdater(metadata_path)
     current = metadata_updater.get_version()
     if current and current != destination_version:
         metadata_updater.set_version(destination_version)
-        print(f"Updated profile version in metadata.xml: {current} -> {destination_version}.")
+        print(
+            f"Updated profile version in metadata.xml: "
+            f"{current} -> {destination_version}."
+        )
     elif not current:
         print("Warning: Could not read current profile version from metadata.xml.")
 

@@ -8,9 +8,8 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent / "shared"))
 
 from exceptions import AddonContextError, CopierTemplateError
-from hooks.addon_context import find_addon_context
+from hooks.addon_context import find_addon_context, resolve_post_copy_context
 from hooks.git_check import warn_git_unclean
-from utils.pyproject_updater import PyprojectUpdater
 from utils.xml_updater import ConfigureZCMLUpdater, ParentFTIUpdater, TypesXMLUpdater
 
 
@@ -110,21 +109,17 @@ def post_copy(
     4. If global_allow=false and parent_content_type is set, update the
        parent FTI's allowed_content_types (when that FTI lives in this package).
     """
-    # Copier runs tasks from the destination directory, so check CWD first
-    cwd = Path.cwd()
-    dest = Path(dest_path)
-
-    # If pyproject.toml exists in CWD, use that (copier runs from destination)
-    if (cwd / "pyproject.toml").exists():
-        dest = cwd
-    elif not dest.is_absolute():
-        dest = dest.resolve()
-
-    pyproject_path = dest / "pyproject.toml"
-
-    if not pyproject_path.exists():
-        print(f"Warning: pyproject.toml not found at {pyproject_path}")
+    ctx = resolve_post_copy_context(dest_path)
+    if ctx is None or not ctx.package_name:
+        print(
+            "Warning: could not detect parent addon (no pyproject.toml, "
+            "bobtemplate.cfg, or setup.py). Skipping configuration updates."
+        )
         return
+
+    dest = ctx.dest
+    package_name = ctx.package_name
+    package_folder = ctx.package_folder
 
     # Get computed values
     values = compute_content_type_values(content_type_name)
@@ -132,34 +127,11 @@ def post_copy(
     content_type_module = values["content_type_module"]
     content_type_interface = values["content_type_interface"]
 
-    # Get package info from pyproject.toml
-    pyproject_updater = PyprojectUpdater(pyproject_path)
-    addon_settings = pyproject_updater.get_addon_settings()
-    package_name = addon_settings.get("package_name", "")
-
-    # Fallback: read package_name directly from pyproject.toml if not found
-    if not package_name:
-        pyproject_content = pyproject_path.read_text()
-        # Try to find package_name in [tool.plone.backend_addon.settings]
-        match = re.search(r'^\s*package_name\s*=\s*["\']([^"\']+)["\']', pyproject_content, re.MULTILINE)
-        if match:
-            package_name = match.group(1)
-        else:
-            # Fallback to project name
-            match = re.search(r'^\s*name\s*=\s*["\']([^"\']+)["\']', pyproject_content, re.MULTILINE)
-            if match:
-                package_name = match.group(1)
-
-    if not package_name:
-        print("Warning: Could not determine package_name from pyproject.toml")
-        return
-
-    package_folder = package_name.replace(".", "/")
-
     # 1. Register content type in addon settings
-    pyproject_updater.register_subtemplate("content_types", content_type_name)
-    pyproject_updater.save()
-    print(f"Registered content type '{content_type_name}' in addon settings.")
+    if ctx.register_subtemplate("content_types", content_type_name):
+        print(
+            f"Registered content type '{content_type_name}' in addon settings."
+        )
 
     # 2. Update content/configure.zcml with behavior entry
     zcml_path = dest / f"src/{package_folder}/content/configure.zcml"

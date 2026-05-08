@@ -6,9 +6,11 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent / "shared"))
 
 from exceptions import AddonContextError, CopierTemplateError  # noqa: E402
-from hooks.addon_context import find_addon_context  # noqa: E402
+from hooks.addon_context import (  # noqa: E402
+    find_addon_context,
+    resolve_post_copy_context,
+)
 from hooks.git_check import warn_git_unclean  # noqa: E402
-from utils.pyproject_updater import PyprojectUpdater  # noqa: E402
 
 
 def validate(dest_path: str) -> None:
@@ -21,27 +23,17 @@ def validate(dest_path: str) -> None:
         )
 
 
-def _resolve_dest(dest_path: str) -> Path:
-    cwd = Path.cwd()
-    dest = Path(dest_path)
-    if (cwd / "pyproject.toml").exists():
-        return cwd
-    if not dest.is_absolute():
-        return dest.resolve()
-    return dest
-
-
 def post_copy(dest_path: str) -> None:
-    dest = _resolve_dest(dest_path)
-    pyproject_path = dest / "pyproject.toml"
-    if not pyproject_path.exists():
-        print(f"Warning: pyproject.toml not found at {pyproject_path}")
+    ctx = resolve_post_copy_context(dest_path)
+    if ctx is None:
+        print(
+            "Warning: could not detect parent addon (no pyproject.toml, "
+            "bobtemplate.cfg, or setup.py). Skipping configuration updates."
+        )
         return
 
-    updater = PyprojectUpdater(pyproject_path)
-    updater.register_subtemplate("site_initialization", "site_initialization")
-    updater.save()
-    print("Registered site_initialization in addon settings.")
+    if ctx.register_subtemplate("site_initialization", "site_initialization"):
+        print("Registered site_initialization in addon settings.")
 
 
 def main() -> None:

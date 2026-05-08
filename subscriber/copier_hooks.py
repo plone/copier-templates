@@ -6,9 +6,11 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent / "shared"))
 
 from exceptions import AddonContextError, CopierTemplateError  # noqa: E402
-from hooks.addon_context import find_addon_context  # noqa: E402
+from hooks.addon_context import (  # noqa: E402
+    find_addon_context,
+    resolve_post_copy_context,
+)
 from hooks.git_check import warn_git_unclean  # noqa: E402
-from utils.pyproject_updater import PyprojectUpdater  # noqa: E402
 from utils.xml_updater import ParentZCMLUpdater, extend_configure_zcml  # noqa: E402
 
 
@@ -22,41 +24,26 @@ def validate(dest_path: str) -> None:
         )
 
 
-def _resolve_dest(dest_path: str) -> Path:
-    cwd = Path.cwd()
-    dest = Path(dest_path)
-    if (cwd / "pyproject.toml").exists():
-        return cwd
-    if not dest.is_absolute():
-        return dest.resolve()
-    return dest
-
-
 def post_copy(
     dest_path: str,
     handler_name: str,
     subscriber_for: str = "plone.dexterity.interfaces.IDexterityContent",
     subscriber_event: str = "zope.lifecycleevent.interfaces.IObjectModifiedEvent",
 ) -> None:
-    dest = _resolve_dest(dest_path)
-    pyproject_path = dest / "pyproject.toml"
-    if not pyproject_path.exists():
-        print(f"Warning: pyproject.toml not found at {pyproject_path}")
+    ctx = resolve_post_copy_context(dest_path)
+    if ctx is None or not ctx.package_folder:
+        print(
+            "Warning: could not detect parent addon (no pyproject.toml, "
+            "bobtemplate.cfg, or setup.py). Skipping configuration updates."
+        )
         return
 
-    updater = PyprojectUpdater(pyproject_path)
-    updater.register_subtemplate("subscribers", handler_name)
-    updater.save()
-    print(f"Registered subscriber '{handler_name}' in addon settings.")
+    if ctx.register_subtemplate("subscribers", handler_name):
+        print(f"Registered subscriber '{handler_name}' in addon settings.")
 
-    addon_settings = updater.get_addon_settings()
-    package_name = addon_settings.get("package_name", "")
-    package_folder = addon_settings.get("package_folder", "")
-    if not package_folder and package_name:
-        package_folder = package_name.replace(".", "/")
-
-    if not package_folder:
-        return
+    dest = ctx.dest
+    package_name = ctx.package_name
+    package_folder = ctx.package_folder
 
     handler_dotted = f".{handler_name}.handler"
     snippet = (

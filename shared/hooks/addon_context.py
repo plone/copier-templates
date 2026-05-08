@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Detect parent addon context for subtemplates."""
 import sys
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 
 import tomllib
 from exceptions import AddonContextError
@@ -102,6 +103,132 @@ def require_addon_context(start_path: Path | None = None) -> dict[str, Any]:
             "No parent addon detected. This template must be run inside an existing backend_addon."
         )
     return context
+
+
+@dataclass
+class AddonContext:
+    """Resolved addon context for use in post_copy hooks.
+
+    Knows the addon's package_name/package_folder (whether discovered from
+    a modern pyproject.toml or a legacy bobtemplate.cfg/setup.py), the
+    resolved destination directory, and whether a pyproject.toml exists
+    that we can write addon-settings into.
+    """
+
+    dest: Path
+    package_name: str
+    package_folder: str
+    is_legacy: bool
+    source: str
+    pyproject_path: Optional[Path]
+
+    def register_subtemplate(self, subtemplate_type: str, name: str) -> bool:
+        """Register a subtemplate registration in addon metadata.
+
+        Behavior depends on what configuration files are present:
+
+        * pyproject.toml present: writes to
+          ``[tool.plone.backend_addon.settings.subtemplates]`` (creating
+          the section if missing).
+        * pyproject.toml absent but bobtemplate.cfg present: writes to a
+          ``[subtemplates]`` section in bobtemplate.cfg, matching the
+          legacy bobtemplates.plone storage location.
+        * neither present (e.g. setup.py-only): graceful no-op with note.
+
+        Returns:
+            True if registered (in pyproject.toml or bobtemplate.cfg),
+            False if skipped because no suitable file was found.
+        """
+        if self.pyproject_path and self.pyproject_path.exists():
+            from utils.pyproject_updater import PyprojectUpdater
+
+            updater = PyprojectUpdater(self.pyproject_path)
+            updater.register_subtemplate(subtemplate_type, name)
+            updater.save()
+            return True
+
+        bobtemplate_cfg = self.dest / "bobtemplate.cfg"
+        if bobtemplate_cfg.exists():
+            from utils.bobtemplate_cfg import register_subtemplate as _reg
+
+            added = _reg(bobtemplate_cfg, subtemplate_type, name)
+            if added:
+                print(
+                    f"Registered {subtemplate_type}={name!r} in "
+                    f"bobtemplate.cfg [subtemplates] section."
+                )
+            return True
+
+        print(
+            f"Note: Skipping subtemplate registration of {name!r} "
+            f"(no pyproject.toml or bobtemplate.cfg; source: {self.source})."
+        )
+        return False
+
+
+def _looks_like_addon_root(path: Path) -> bool:
+    """Path contains addon markers (pyproject.toml, setup.py, bobtemplate.cfg)."""
+    return (
+        (path / "pyproject.toml").exists()
+        or (path / "setup.py").exists()
+        or (path / "bobtemplate.cfg").exists()
+    )
+
+
+def resolve_post_copy_context(dest_path: str | Path) -> Optional[AddonContext]:
+    """Resolve addon context for a post_copy hook.
+
+    Picks the right destination directory (cwd if it looks like an addon root,
+    otherwise the given dest_path) and detects modern (pyproject.toml with
+    [tool.plone.backend_addon.settings]) or legacy (bobtemplate.cfg, setup.py,
+    plain pyproject.toml) addons.
+
+    Returns:
+        AddonContext if a parent addon is found, None otherwise.
+    """
+    cwd = Path.cwd()
+    dest = Path(dest_path)
+
+    if _looks_like_addon_root(cwd):
+        dest = cwd
+    elif not dest.is_absolute():
+        dest = dest.resolve()
+
+    pyproject_path = dest / "pyproject.toml"
+
+    if pyproject_path.exists():
+        settings = _read_addon_settings(pyproject_path)
+        if settings:
+            package_name = settings.get("package_name", "")
+            package_folder = settings.get("package_folder") or (
+                package_name.replace(".", "/") if package_name else ""
+            )
+            if package_name or package_folder:
+                return AddonContext(
+                    dest=dest,
+                    package_name=package_name,
+                    package_folder=package_folder,
+                    is_legacy=False,
+                    source="pyproject.toml",
+                    pyproject_path=pyproject_path,
+                )
+
+    legacy = find_legacy_addon_context(dest)
+    if legacy:
+        legacy_name = legacy.get("package_name", "")
+        legacy_folder = legacy.get("package_folder") or (
+            legacy_name.replace(".", "/") if legacy_name else ""
+        )
+        return AddonContext(
+            dest=dest,
+            package_name=legacy_name,
+            package_folder=legacy_folder,
+            is_legacy=True,
+            source=legacy.get("_legacy_source", "unknown"),
+            pyproject_path=pyproject_path if pyproject_path.exists() else None,
+        )
+
+    return None
 
 
 def get_package_folder(package_name: str) -> str:

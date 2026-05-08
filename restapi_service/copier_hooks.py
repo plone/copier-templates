@@ -7,9 +7,8 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent / "shared"))
 
 from exceptions import AddonContextError, CopierTemplateError
-from hooks.addon_context import find_addon_context
+from hooks.addon_context import find_addon_context, resolve_post_copy_context
 from hooks.git_check import warn_git_unclean
-from utils.pyproject_updater import PyprojectUpdater
 from utils.xml_updater import (
     ParentZCMLUpdater,
     ZCMLConfigureExtender,
@@ -51,38 +50,24 @@ def post_copy(
     2. Extend services/configure.zcml with <plone:service> entries
     3. Add include for services subpackage in parent configure.zcml
     """
-    cwd = Path.cwd()
-    dest = Path(dest_path)
-
-    if (cwd / "pyproject.toml").exists():
-        dest = cwd
-    elif not dest.is_absolute():
-        dest = dest.resolve()
-
-    pyproject_path = dest / "pyproject.toml"
-
-    if not pyproject_path.exists():
-        print(f"Warning: pyproject.toml not found at {pyproject_path}")
+    ctx = resolve_post_copy_context(dest_path)
+    if ctx is None or not ctx.package_folder:
+        print(
+            "Warning: could not detect parent addon (no pyproject.toml, "
+            "bobtemplate.cfg, or setup.py). Skipping configuration updates."
+        )
         return
 
     endpoint = service_endpoint or (
         f"@{service_name.lower().replace('_', '-').replace(' ', '-')}"
     )
 
-    updater = PyprojectUpdater(pyproject_path)
-    updater.register_subtemplate("services", endpoint)
-    updater.save()
+    if ctx.register_subtemplate("services", endpoint):
+        print(f"Registered service '{endpoint}' in addon settings.")
 
-    print(f"Registered service '{endpoint}' in addon settings.")
-
-    addon_settings = updater.get_addon_settings()
-    package_name = addon_settings.get("package_name", "")
-    package_folder = addon_settings.get("package_folder", "")
-    if not package_folder and package_name:
-        package_folder = package_name.replace(".", "/")
-
-    if not package_folder:
-        return
+    dest = ctx.dest
+    package_name = ctx.package_name
+    package_folder = ctx.package_folder
 
     import re as _re
 

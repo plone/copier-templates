@@ -1,4 +1,8 @@
 """Tests for upgrade_step subtemplate."""
+import shutil
+import subprocess
+import textwrap
+
 import pytest
 from helpers import assert_file_exists, read_toml, run_copier
 
@@ -367,3 +371,123 @@ class TestMultipleUpgradeSteps:
 
         metadata = addon_dir / "src/my/pkg/profiles/default/metadata.xml"
         assert_file_exists(metadata, content_contains="<version>1002</version>")
+
+
+@pytest.mark.integration
+class TestUpgradeStepInPloneSite:
+    """End-to-end: install addon in a real Plone site, then run the upgrade.
+
+    Generates a backend_addon, applies the upgrade_step template, runs
+    ``uv sync`` to install Plone, then drives a pytest-based integration
+    test inside the generated addon that:
+
+    1. Boots a Plone test layer (which installs the addon at metadata
+       version 1001 — the post-upgrade state).
+    2. Rolls ``portal_setup``'s recorded version back to ``1000`` to
+       simulate an addon that was installed before the upgrade step
+       existed (creating the "starting profile" state).
+    3. Calls ``portal_setup.upgradeProfile()`` to apply pending steps.
+    4. Asserts the recorded profile version was bumped to ``1001``.
+
+    Slow (downloads Plone on first run). Opt in with ``pytest -m integration``.
+    """
+
+    def test_upgrade_bumps_profile_version_in_plone_site(
+        self, temp_dir, backend_addon_template, upgrade_step_template
+    ):
+        if shutil.which("uv") is None:
+            pytest.skip("uv is required to run the Plone integration test")
+
+        addon_dir = temp_dir / "myaddon"
+        package_name = "collective.upgradetest"
+
+        # 1. Generate parent addon (metadata.xml version = 1000).
+        result = run_copier(
+            backend_addon_template,
+            addon_dir,
+            data={"package_name": package_name},
+        )
+        assert result.returncode == 0, f"backend_addon failed: {result.stderr}"
+
+        # 2. Generate upgrade step 1000 -> 1001 (bumps metadata.xml to 1001,
+        #    registers handler + per-step ZCML in the addon's upgrades/).
+        result = run_copier(
+            upgrade_step_template,
+            addon_dir,
+            data={
+                "upgrade_step_title": "Bump to 1001",
+                "upgrade_step_description": "Test upgrade step",
+                "source_version": "1000",
+                "destination_version": "1001",
+            },
+        )
+        assert result.returncode == 0, f"upgrade_step failed: {result.stderr}"
+
+        # 3. Drop a Plone integration test alongside the generated tests.
+        plone_test = addon_dir / "tests" / "test_upgrade_integration.py"
+        plone_test.write_text(textwrap.dedent(f'''\
+            """Plone integration test for upgrade step 1000 -> 1001."""
+            from plone.app.testing import setRoles, TEST_USER_ID
+
+
+            class TestUpgradeProfileVersion:
+                """Verify portal_setup bumps the profile version after upgrade."""
+
+                profile_id = "{package_name}:default"
+
+                def test_upgrade_step_bumps_profile_version(self, integration):
+                    portal = integration["portal"]
+                    setRoles(portal, TEST_USER_ID, ["Manager"])
+                    setup_tool = portal.portal_setup
+
+                    # Layer setUp already applied the default profile, so
+                    # the recorded version is the current metadata.xml (1001).
+                    # Simulate the pre-upgrade state by rolling it back to 1000.
+                    setup_tool.setLastVersionForProfile(self.profile_id, "1000")
+                    assert setup_tool.getLastVersionForProfile(
+                        self.profile_id
+                    ) == ("1000",)
+
+                    pending = setup_tool.listUpgrades(self.profile_id)
+                    assert pending, (
+                        "Expected at least one pending upgrade step "
+                        "from 1000 to 1001"
+                    )
+
+                    setup_tool.upgradeProfile(self.profile_id)
+
+                    assert setup_tool.getLastVersionForProfile(
+                        self.profile_id
+                    ) == ("1001",), (
+                        "Upgrade did not bump the profile version to 1001"
+                    )
+        '''))
+
+        # 4. Install Plone + addon deps in the generated package.
+        sync = subprocess.run(
+            ["uv", "sync", "--extra", "test"],
+            cwd=addon_dir,
+            capture_output=True,
+            text=True,
+            timeout=900,
+        )
+        assert sync.returncode == 0, (
+            f"uv sync failed:\nSTDOUT:\n{sync.stdout}\nSTDERR:\n{sync.stderr}"
+        )
+
+        # 5. Run the integration test inside the generated addon.
+        run = subprocess.run(
+            [
+                "uv", "run", "pytest",
+                "tests/test_upgrade_integration.py",
+                "-v", "--tb=short",
+            ],
+            cwd=addon_dir,
+            capture_output=True,
+            text=True,
+            timeout=600,
+        )
+        assert run.returncode == 0, (
+            "Plone integration test failed:\n"
+            f"STDOUT:\n{run.stdout}\nSTDERR:\n{run.stderr}"
+        )

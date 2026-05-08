@@ -41,7 +41,10 @@ packages = ["shared"]
 testpaths = ["tests"]
 python_files = ["test_*.py"]
 python_functions = ["test_*"]
-addopts = "-v --tb=short"
+addopts = "-v --tb=short -m 'not integration'"
+markers = [
+    "integration: end-to-end tests that boot a real Plone site (slow; opt in with -m integration)",
+]
 
 [tool.ruff]
 line-length = 100

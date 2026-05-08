@@ -49,7 +49,17 @@ markers = [
 [tool.ruff]
 line-length = 100
 target-version = "py310"
+extend-exclude = [
+    "*/template/**",
+    "tmp",
+    "dist",
+]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "W"]
 ignore = ["E501"]
+
+[tool.ruff.lint.per-file-ignores]
+# sys.path is intentionally modified before sibling imports so that
+# copier hook submodules can use bare imports.
+"shared/hooks/__init__.py" = ["E402"]

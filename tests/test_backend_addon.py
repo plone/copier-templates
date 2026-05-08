@@ -21,6 +21,28 @@ class TestBackendAddonIsolated:
         assert_file_exists(pkg_dir / "src/collective/mypackage/__init__.py")
         assert_file_exists(pkg_dir / "src/collective/mypackage/configure.zcml")
 
+    def test_creates_gitignore(self, temp_dir, backend_addon_template):
+        """Backend addon creates a .gitignore that excludes common build artifacts."""
+        run_copier(
+            backend_addon_template,
+            temp_dir / "mypackage",
+            data={"package_name": "collective.mypackage"},
+        )
+
+        gitignore = temp_dir / "mypackage/.gitignore"
+        assert_file_exists(gitignore)
+        content = gitignore.read_text()
+        # Python cache files
+        assert "__pycache__/" in content
+        assert "*.py[cod]" in content
+        # Virtual environments
+        assert ".venv" in content
+        # Node / frontend tooling
+        assert "node_modules/" in content
+        # Egg / build outputs
+        assert "*.egg-info/" in content
+        assert "build/" in content
+
     def test_pyproject_has_addon_settings(self, temp_dir, backend_addon_template):
         """Backend addon includes custom settings namespace."""
         run_copier(

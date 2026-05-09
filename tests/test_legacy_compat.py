@@ -18,7 +18,6 @@ from pathlib import Path
 import pytest
 from helpers import apply_subtemplate, assert_file_exists
 
-
 PACKAGE_NAME = "collective.legacypkg"
 PACKAGE_FOLDER = "collective/legacypkg"
 

@@ -9,7 +9,6 @@ Handles migration from old-style Plone packages:
 """
 from pathlib import Path
 
-
 # Files that should be renamed (not deleted) after migration
 LEGACY_FILES = [
     "bobtemplate.cfg",

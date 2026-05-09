@@ -1,9 +1,9 @@
 """Jinja2 extensions for the zope-setup template."""
 
 import sys
+import tomllib
 from pathlib import Path
 
-import tomllib
 from copier_template_extensions import ContextHook
 
 # Ensure shared package is importable

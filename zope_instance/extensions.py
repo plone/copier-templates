@@ -1,8 +1,8 @@
 """Jinja2 extension to read project context from pyproject.toml."""
 
+import tomllib
 from pathlib import Path
 
-import tomllib
 from copier_template_extensions import ContextHook
 
 

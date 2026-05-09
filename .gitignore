@@ -41,6 +41,11 @@ htmlcov/
 # Copier
 .copier-answers*.yml
 
+# Template var/ scaffolding must be tracked (the var/ ignore above is for
+# generated/runtime data, not for template fixtures).
+!*/template/**/var/
+!*/template/**/var/.gitkeep
+
 # Temp
 tmp/
 *.tmp

@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """Detect parent addon context for subtemplates."""
 import sys
+import tomllib
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Optional
 
-import tomllib
 from exceptions import AddonContextError
 from hooks.legacy_context import find_legacy_addon_context
 

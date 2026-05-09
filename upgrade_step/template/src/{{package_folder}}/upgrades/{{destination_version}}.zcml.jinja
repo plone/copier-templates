@@ -23,7 +23,7 @@
 
     <genericsetup:upgradeDepends
         title="Apply profile version {{ destination_version }}"
-        import_profile="{{ package_name }}:{{ destination_version }}"
+        import_profile="{{ package_name }}.upgrades:{{ destination_version }}"
         />
 
   </genericsetup:upgradeSteps>

@@ -3,7 +3,7 @@ name = "copier-templates"
 version = "0.1.0"
 description = "Multi-template Copier repository for Plone development"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 license = {text = "MIT"}
 authors = [
     {name = "Plone Foundation", email = "foundation@plone.org"}
@@ -13,7 +13,6 @@ classifiers = [
     "Intended Audience :: Developers",
     "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Topic :: Software Development :: Code Generators",
@@ -25,6 +24,7 @@ dev = [
     "copier-template-extensions>=0.3.0",
     "pytest>=8.0.0",
     "pytest-cov>=4.0.0",
+    "ruff>=0.6.0",
     "tomlkit>=0.12.0",
     "pyyaml>=6.0.0",
     "hatchling"
@@ -41,12 +41,25 @@ packages = ["shared"]
 testpaths = ["tests"]
 python_files = ["test_*.py"]
 python_functions = ["test_*"]
-addopts = "-v --tb=short"
+addopts = "-v --tb=short -m 'not integration'"
+markers = [
+    "integration: end-to-end tests that boot a real Plone site (slow; opt in with -m integration)",
+]
 
 [tool.ruff]
 line-length = 100
-target-version = "py310"
+target-version = "py311"
+extend-exclude = [
+    "*/template/**",
+    "tmp",
+    "dist",
+]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "W"]
 ignore = ["E501"]
+
+[tool.ruff.lint.per-file-ignores]
+# sys.path is intentionally modified before sibling imports so that
+# copier hook submodules can use bare imports.
+"shared/hooks/__init__.py" = ["E402"]

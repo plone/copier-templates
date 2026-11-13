@@ -3,6 +3,7 @@ import pytest
 from plone import api
 from plone.app.testing import setRoles
 from plone.app.testing import TEST_USER_ID
+from Products.GenericSetup.upgrade import normalize_version
 
 
 class TestSetup:
@@ -24,6 +25,15 @@ class TestSetup:
         # from {{ package_name }}.interfaces import I{{ package_name.replace('.', ' ').title().replace(' ', '') }}Layer
         # assert I{{ package_name.replace('.', ' ').title().replace(' ', '') }}Layer in utils.registered_layers()
         assert True
+
+    def test_profile_version_matches_last_upgrade(self):
+        """metadata.xml must point at the newest upgrade step destination."""
+        setup_tool = self.portal.portal_setup
+        profile_id = "{{ package_name }}:default"
+        steps = setup_tool.listUpgrades(profile_id, show_old=True, simple=True)
+        if steps:
+            latest = max((step.dest for step in steps), key=normalize_version)
+            assert latest == (setup_tool.getVersionForProfile(profile_id),)
 
 
 class TestUninstall:

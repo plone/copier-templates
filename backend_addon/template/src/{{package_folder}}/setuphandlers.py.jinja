@@ -7,6 +7,12 @@ from zope.interface import implementer
 class HiddenProfiles:
     """Hidden profiles from the Plone add-ons control panel."""
 
+    def getNonInstallableProducts(self):
+        """Hide all upgrade step profiles registered in .upgrades."""
+        return [
+            "{{ package_name }}.upgrades",
+        ]
+
     def getNonInstallableProfiles(self):
         """Return list of profiles that should not be available for install."""
         return [

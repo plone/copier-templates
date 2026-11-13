@@ -3,28 +3,24 @@ import pytest
 from plone.app.testing import setRoles
 from plone.app.testing import TEST_USER_ID
 
-from {{ package_name }}.testing import INTEGRATION_TESTING
+PROFILE_ID = "{{ package_name }}:default"
+SOURCE = "{{ source_version }}"
+DESTINATION = "{{ destination_version }}"
 
 
-class TestUpgrade{{ destination_version }}:
-    """Test upgrade to version {{ destination_version }}."""
-
-    layer = INTEGRATION_TESTING
+class TestUpgrade{{ destination_version | replace('.', '_') }}:
+    """Upgrade {{ source_version }} -> {{ destination_version }}: {{ upgrade_step_title }}."""
 
     @pytest.fixture(autouse=True)
     def _setup(self, integration):
         self.portal = integration["portal"]
         setRoles(self.portal, TEST_USER_ID, ["Manager"])
+        self.setup_tool = self.portal.portal_setup
 
-    def test_upgrade_handler_importable(self):
-        """Test the upgrade handler can be imported."""
-        from {{ package_name }}.upgrades.v{{ destination_version }} import upgrade
+    def test_upgrade_reaches_destination(self):
+        self.setup_tool.setLastVersionForProfile(PROFILE_ID, SOURCE)
 
-        assert callable(upgrade)
+        self.setup_tool.upgradeProfile(PROFILE_ID, dest=DESTINATION)
 
-    def test_upgrade_handler_runs(self):
-        """Test the upgrade handler can be executed."""
-        from {{ package_name }}.upgrades.v{{ destination_version }} import upgrade
-
-        setup_tool = self.portal.portal_setup
-        upgrade(setup_tool)
+        assert self.setup_tool.getLastVersionForProfile(PROFILE_ID) == (DESTINATION,)
+        # TODO: assert what this step changed, e.g. a registry record exists.

@@ -2,30 +2,21 @@
     xmlns="http://namespaces.zope.org/zope"
     xmlns:genericsetup="http://namespaces.zope.org/genericsetup"
     i18n_domain="{{ package_name }}">
-
+{% if upgrade_step_import_steps %}
   <genericsetup:registerProfile
       name="{{ destination_version }}"
       title="{{ package_name }}: upgrade to {{ destination_version }}"
       directory="{{ destination_version }}"
       provides="Products.GenericSetup.interfaces.EXTENSION"
       />
-
-  <genericsetup:upgradeSteps
+{% endif %}
+  <genericsetup:upgradeStep
       source="{{ source_version }}"
       destination="{{ destination_version }}"
-      profile="{{ package_name }}:default">
-
-    <genericsetup:upgradeStep
-        title="{{ upgrade_step_title | e }}"
-        description="{{ upgrade_step_description | e }}"
-        handler=".v{{ destination_version }}.upgrade"
-        />
-
-    <genericsetup:upgradeDepends
-        title="Apply profile version {{ destination_version }}"
-        import_profile="{{ package_name }}.upgrades:{{ destination_version }}"
-        />
-
-  </genericsetup:upgradeSteps>
+      profile="{{ package_name }}:default"
+      title="{{ upgrade_step_title | e }}"
+      description="{{ upgrade_step_description | e }}"
+      handler=".v{{ destination_version }}.upgrade"
+      />
 
 </configure>

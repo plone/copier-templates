@@ -67,3 +67,16 @@ class AddonContextHook(ContextHook):
             version = updater.get_version()
             if version:
                 context["current_profile_version"] = version
+            context["existing_upgrade_files"] = existing_upgrade_files(
+                dest / "src" / package_folder / "upgrades"
+            )
+
+
+def existing_upgrade_files(upgrades_dir: Path) -> dict[str, str]:
+    """Map destination version -> an existing per-version file in upgrades/."""
+    found = {}
+    for pattern, version_of in (("v*.py", lambda p: p.stem[1:]), ("*.zcml", lambda p: p.stem)):
+        for path in sorted(upgrades_dir.glob(pattern)):
+            if path.name != "configure.zcml":
+                found.setdefault(version_of(path), f"upgrades/{path.name}")
+    return found

@@ -25,6 +25,8 @@
       directory="profiles/uninstall"
       />
 
+  <utility factory=".setuphandlers.HiddenProfiles" name="{{ package_name }}-hiddenprofiles" />
+
   <genericsetup:importStep
       name="{{ package_name }}-uninstall"
       title="{{ package_title | e }} uninstall"

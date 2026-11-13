@@ -6,6 +6,23 @@ import textwrap
 import pytest
 from helpers import assert_file_exists, plone_subprocess_env, run_copier
 
+PKG = "src/my/pkg"
+
+
+def add_step(addon_dir, template, overwrite=False, **data):
+    """Run upgrade_step the way plonecli does: --defaults, no --overwrite."""
+    answers = {"upgrade_step_title": "Add catalog index"}
+    answers.update(data)
+    return run_copier(template, addon_dir, data=answers, overwrite=overwrite)
+
+
+@pytest.fixture
+def addon_dir(temp_dir, backend_addon_template):
+    pkg_dir = temp_dir / "pkg"
+    result = run_copier(backend_addon_template, pkg_dir, data={"package_name": "my.pkg"})
+    assert result.returncode == 0, result.stderr
+    return pkg_dir
+
 
 class TestUpgradeStepRequiresAddon:
     """Upgrade step subtemplate requires parent addon."""
@@ -25,437 +42,285 @@ class TestUpgradeStepRequiresAddon:
             or "package_name" in error_msg
         )
 
-    def test_succeeds_with_parent_addon(
-        self, temp_dir, backend_addon_template, upgrade_step_template
-    ):
-        """Upgrade step succeeds when parent addon exists."""
-        run_copier(
-            backend_addon_template,
-            temp_dir / "mypackage",
-            data={"package_name": "collective.mypackage"},
-        )
-
-        result = run_copier(
-            upgrade_step_template,
-            temp_dir / "mypackage",
-            data={"upgrade_step_title": "Add catalog index"},
-        )
+    def test_succeeds_with_parent_addon(self, addon_dir, upgrade_step_template):
+        result = add_step(addon_dir, upgrade_step_template)
         assert result.returncode == 0, f"Copier failed: {result.stderr}"
 
 
-class TestUpgradeStepCreation:
-    """Test upgrade step file creation."""
+class TestPythonOnlyStep:
+    """Without import steps the step is a plain Python handler."""
 
-    @pytest.fixture
-    def addon_dir(self, temp_dir, backend_addon_template):
-        """Create a parent addon for testing."""
-        pkg_dir = temp_dir / "mypackage"
-        run_copier(
-            backend_addon_template,
-            pkg_dir,
-            data={"package_name": "collective.mypackage"},
-        )
-        return pkg_dir
+    @pytest.fixture(autouse=True)
+    def _run(self, addon_dir, upgrade_step_template):
+        result = add_step(addon_dir, upgrade_step_template)
+        assert result.returncode == 0, result.stderr
+        self.upgrades = addon_dir / PKG / "upgrades"
+        self.addon_dir = addon_dir
 
-    def test_creates_handler_module(self, addon_dir, upgrade_step_template):
-        """Upgrade step creates versioned handler Python module."""
-        run_copier(
-            upgrade_step_template,
-            addon_dir,
-            data={
-                "upgrade_step_title": "Add catalog index",
-                "source_version": "1000",
-                "destination_version": "1001",
-            },
-        )
+    def test_handler_has_todo_and_no_import(self):
+        handler = (self.upgrades / "v1001.py").read_text()
+        assert "def upgrade(context)" in handler
+        assert "TODO" in handler
+        assert "runImportStepFromProfile" not in handler
+        assert "loadMigrationProfile" not in handler
 
-        handler = (
-            addon_dir
-            / "src/collective/mypackage/upgrades/v1001.py"
-        )
-        assert_file_exists(handler, content_contains="def upgrade")
+    def test_no_profile_dir(self):
+        assert not (self.upgrades / "1001").exists()
 
-    def test_creates_per_step_zcml(self, addon_dir, upgrade_step_template):
-        """Upgrade step creates per-step ZCML file."""
-        run_copier(
-            upgrade_step_template,
-            addon_dir,
-            data={
-                "upgrade_step_title": "Add catalog index",
-                "source_version": "1000",
-                "destination_version": "1001",
-            },
-        )
-
-        step_zcml = (
-            addon_dir
-            / "src/collective/mypackage/upgrades/1001.zcml"
-        )
-        assert_file_exists(step_zcml, content_contains=[
-            "genericsetup:upgradeStep",
-            'source="1000"',
-            'destination="1001"',
-            'handler=".v1001.upgrade"',
-            'profile="collective.mypackage:default"',
-        ])
-
-    def test_creates_per_step_profile_dir(self, addon_dir, upgrade_step_template):
-        """Upgrade step creates per-step profile directory with metadata.txt."""
-        run_copier(
-            upgrade_step_template,
-            addon_dir,
-            data={
-                "upgrade_step_title": "Add catalog index",
-                "source_version": "1000",
-                "destination_version": "1001",
-            },
-        )
-
-        metadata = (
-            addon_dir
-            / "src/collective/mypackage/upgrades/1001/metadata.txt"
-        )
-        assert metadata.exists()
-        # bobtemplates parity: the version dir also ships a .gitkeep
-        assert (
-            addon_dir / "src/collective/mypackage/upgrades/1001/.gitkeep"
-        ).exists()
-
-    def test_creates_upgrades_init(self, addon_dir, upgrade_step_template):
-        """Upgrade step creates upgrades __init__.py."""
-        run_copier(
-            upgrade_step_template,
-            addon_dir,
-            data={"upgrade_step_title": "Add catalog index"},
-        )
-
-        init_file = addon_dir / "src/collective/mypackage/upgrades/__init__.py"
-        assert init_file.exists()
-
-    def test_handler_has_logging(self, addon_dir, upgrade_step_template):
-        """Handler module includes logging setup."""
-        run_copier(
-            upgrade_step_template,
-            addon_dir,
-            data={
-                "upgrade_step_title": "Add catalog index",
-                "source_version": "1000",
-                "destination_version": "1001",
-            },
-        )
-
-        handler = (
-            addon_dir
-            / "src/collective/mypackage/upgrades/v1001.py"
-        )
-        assert_file_exists(handler, content_contains=[
-            "import logging",
-            "logger = logging.getLogger",
-        ])
-
-    def test_handler_has_version_info(self, addon_dir, upgrade_step_template):
-        """Handler docstring includes version info."""
-        run_copier(
-            upgrade_step_template,
-            addon_dir,
-            data={
-                "upgrade_step_title": "Add catalog index",
-                "source_version": "1000",
-                "destination_version": "1001",
-            },
-        )
-
-        handler = (
-            addon_dir
-            / "src/collective/mypackage/upgrades/v1001.py"
-        )
-        assert_file_exists(handler, content_contains="1000")
-
-
-class TestUpgradeStepIntegration:
-    """Test upgrade step registers in parent addon."""
-
-    @pytest.fixture
-    def addon_dir(self, temp_dir, backend_addon_template):
-        """Create a parent addon for testing."""
-        pkg_dir = temp_dir / "pkg"
-        run_copier(
-            backend_addon_template,
-            pkg_dir,
-            data={"package_name": "my.pkg"},
-        )
-        return pkg_dir
-
-    def test_adds_parent_zcml_include(self, addon_dir, upgrade_step_template):
-        """Upgrade step adds include to parent configure.zcml."""
-        run_copier(
-            upgrade_step_template,
-            addon_dir,
-            data={"upgrade_step_title": "Add catalog index"},
-        )
-
-        parent_zcml = addon_dir / "src/my/pkg/configure.zcml"
-        assert_file_exists(
-            parent_zcml, content_contains='<include package=".upgrades" />'
-        )
-
-    def test_bumps_metadata_version(self, addon_dir, upgrade_step_template):
-        """Upgrade step bumps metadata.xml profile version."""
-        run_copier(
-            upgrade_step_template,
-            addon_dir,
-            data={
-                "upgrade_step_title": "Add catalog index",
-                "source_version": "1000",
-                "destination_version": "1001",
-            },
-        )
-
-        metadata = addon_dir / "src/my/pkg/profiles/default/metadata.xml"
-        assert_file_exists(metadata, content_contains="<version>1001</version>")
-
-    def test_creates_upgrade_configure_zcml(self, addon_dir, upgrade_step_template):
-        """Upgrade step creates upgrades/configure.zcml with file include."""
-        run_copier(
-            upgrade_step_template,
-            addon_dir,
-            data={
-                "upgrade_step_title": "Add catalog index",
-                "source_version": "1000",
-                "destination_version": "1001",
-            },
-        )
-
-        zcml = addon_dir / "src/my/pkg/upgrades/configure.zcml"
-        assert_file_exists(zcml, content_contains=[
-            '<include file="1001.zcml" />',
-        ])
-
-    def test_creates_per_step_zcml_with_registration(
-        self, addon_dir, upgrade_step_template
-    ):
-        """Per-step ZCML contains the upgradeStep registration."""
-        run_copier(
-            upgrade_step_template,
-            addon_dir,
-            data={
-                "upgrade_step_title": "Add catalog index",
-                "source_version": "1000",
-                "destination_version": "1001",
-            },
-        )
-
-        step_zcml = addon_dir / "src/my/pkg/upgrades/1001.zcml"
-        assert_file_exists(step_zcml, content_contains=[
+    def test_zcml_registers_step_only(self):
+        zcml = (self.upgrades / "1001.zcml").read_text()
+        for expected in (
             "genericsetup:upgradeStep",
             'source="1000"',
             'destination="1001"',
             'handler=".v1001.upgrade"',
             'profile="my.pkg:default"',
-        ])
+        ):
+            assert expected in zcml
+        assert "registerProfile" not in zcml
+        assert "upgradeDepends" not in zcml
+
+    def test_no_shared_base_module(self):
+        assert not (self.upgrades / "base.py").exists()
+        assert (self.upgrades / "__init__.py").exists()
+
+    def test_wires_zcml_and_bumps_metadata(self):
+        assert_file_exists(
+            self.upgrades / "configure.zcml",
+            content_contains='<include file="1001.zcml" />',
+        )
+        assert_file_exists(
+            self.addon_dir / PKG / "configure.zcml",
+            content_contains='<include package=".upgrades" />',
+        )
+        assert_file_exists(
+            self.addon_dir / PKG / "profiles/default/metadata.xml",
+            content_contains="<version>1001</version>",
+        )
 
 
-class TestMultipleUpgradeSteps:
-    """Test adding multiple upgrade steps."""
+class TestStepWithImportSteps:
+    """Chosen import steps run from the step's own profile, once."""
+
+    @pytest.fixture(autouse=True)
+    def _run(self, addon_dir, upgrade_step_template):
+        self.result = add_step(
+            addon_dir,
+            upgrade_step_template,
+            upgrade_step_import_steps="[plone.app.registry, typeinfo]",
+        )
+        assert self.result.returncode == 0, self.result.stderr
+        self.upgrades = addon_dir / PKG / "upgrades"
+        self.addon_dir = addon_dir
+
+    def test_handler_imports_only_chosen_steps(self):
+        handler = (self.upgrades / "v1001.py").read_text()
+        assert 'UPGRADE_PROFILE = "profile-my.pkg.upgrades:1001"' in handler
+        assert handler.count("runImportStepFromProfile") == 2
+        assert '"plone.app.registry"' in handler
+        assert '"typeinfo"' in handler
+        assert "run_dependencies=False" in handler
+        assert "loadMigrationProfile" not in handler
+
+    def test_profile_dir_without_placeholder_metadata(self):
+        profile_dir = self.upgrades / "1001"
+        assert (profile_dir / ".gitkeep").exists()
+        assert not (profile_dir / "metadata.txt").exists()
+
+    def test_zcml_registers_profile_without_upgrade_depends(self):
+        zcml = (self.upgrades / "1001.zcml").read_text()
+        assert 'name="1001"' in zcml
+        assert 'directory="1001"' in zcml
+        assert "upgradeDepends" not in zcml
+
+    def test_upgrade_profiles_hidden(self):
+        setuphandlers = (self.addon_dir / PKG / "setuphandlers.py").read_text()
+        assert '"my.pkg.upgrades"' in setuphandlers
+        assert "setuphandlers.py" not in self.result.stdout, "already hidden by backend_addon"
+
+    def test_summary_printed(self):
+        assert "Upgrade step 1000 -> 1001" in self.result.stdout
+        assert "upgrades/1001/" in self.result.stdout
+
+    def test_unknown_import_step_rejected(self, upgrade_step_template):
+        result = add_step(
+            self.addon_dir,
+            upgrade_step_template,
+            source_version="1001",
+            destination_version="1002",
+            upgrade_step_import_steps="[nonsense]",
+        )
+        assert result.returncode != 0
+        assert not (self.upgrades / "v1002.py").exists()
+
+
+class TestGeneratedTest:
+    def test_runs_the_real_upgrade_path(self, addon_dir, upgrade_step_template):
+        assert add_step(addon_dir, upgrade_step_template).returncode == 0
+
+        test = (addon_dir / PKG / "tests/test_upgrade_step_1001.py").read_text()
+        assert 'SOURCE = "1000"' in test
+        assert 'DESTINATION = "1001"' in test
+        assert "upgradeProfile(PROFILE_ID, dest=DESTINATION)" in test
+        assert "getLastVersionForProfile(PROFILE_ID) == (DESTINATION,)" in test
+        assert "TODO" in test
+
+
+class TestRerun:
+    """Re-running for the next version must not touch shared files."""
+
+    def test_second_step_keeps_shared_files(self, addon_dir, upgrade_step_template):
+        assert add_step(addon_dir, upgrade_step_template).returncode == 0
+        upgrades = addon_dir / PKG / "upgrades"
+        (upgrades / "__init__.py").write_text("# customised\n")
+        (upgrades / "base.py").write_text("# package helpers\n")
+
+        result = add_step(
+            addon_dir,
+            upgrade_step_template,
+            upgrade_step_title="Migrate content",
+        )
+
+        assert result.returncode == 0, result.stderr
+        assert (upgrades / "__init__.py").read_text() == "# customised\n"
+        assert (upgrades / "base.py").read_text() == "# package helpers\n"
+        assert_file_exists(upgrades / "1002.zcml", content_contains='source="1001"')
+        assert_file_exists(upgrades / "v1002.py", content_contains="Migrate content")
+        assert_file_exists(
+            upgrades / "configure.zcml",
+            content_contains=['<include file="1001.zcml" />', '<include file="1002.zcml" />'],
+        )
+        assert_file_exists(
+            addon_dir / PKG / "profiles/default/metadata.xml",
+            content_contains="<version>1002</version>",
+        )
+
+    def test_existing_destination_fails_before_rendering(
+        self, addon_dir, upgrade_step_template
+    ):
+        assert add_step(addon_dir, upgrade_step_template).returncode == 0
+        handler = addon_dir / PKG / "upgrades/v1001.py"
+        handler.write_text("# hand-written\n")
+
+        result = add_step(
+            addon_dir,
+            upgrade_step_template,
+            source_version="1000",
+            destination_version="1001",
+        )
+
+        assert result.returncode != 0
+        assert "upgrades/v1001.py already exists" in result.stderr
+        assert handler.read_text() == "# hand-written\n"
+
+
+class TestHiddenProfilesExistingPackage:
+    """Packages without the upgrades product hidden get it added."""
+
+    SETUPHANDLERS = textwrap.dedent('''\
+        from Products.CMFPlone.interfaces import INonInstallable
+        from zope.interface import implementer
+
+
+        @implementer(INonInstallable)
+        class HiddenProfiles:
+
+            def getNonInstallableProfiles(self):
+                return [
+                    "my.pkg:uninstall",
+                ]
+        ''')
 
     @pytest.fixture
-    def addon_dir(self, temp_dir, backend_addon_template):
-        """Create a parent addon for testing."""
-        pkg_dir = temp_dir / "pkg"
-        run_copier(
-            backend_addon_template,
-            pkg_dir,
-            data={"package_name": "my.pkg"},
-        )
-        return pkg_dir
+    def old_addon(self, addon_dir):
+        (addon_dir / PKG / "setuphandlers.py").write_text(self.SETUPHANDLERS)
+        zcml = addon_dir / PKG / "configure.zcml"
+        lines = [line for line in zcml.read_text().splitlines() if "HiddenProfiles" not in line]
+        zcml.write_text("\n".join(lines) + "\n")
+        return addon_dir
 
-    def test_second_step_adds_include_to_zcml(
+    def test_adds_products_method_and_utility(self, old_addon, upgrade_step_template):
+        result = add_step(
+            old_addon, upgrade_step_template, upgrade_step_import_steps="[catalog]"
+        )
+        assert result.returncode == 0, result.stderr
+
+        setuphandlers = (old_addon / PKG / "setuphandlers.py").read_text()
+        assert "def getNonInstallableProducts(self):" in setuphandlers
+        assert '"my.pkg.upgrades",' in setuphandlers
+        compile(setuphandlers, "setuphandlers.py", "exec")
+        assert_file_exists(
+            old_addon / PKG / "configure.zcml",
+            content_contains='factory=".setuphandlers.HiddenProfiles"',
+        )
+
+    def test_registers_utility_when_product_already_listed(
         self, addon_dir, upgrade_step_template
     ):
-        """Second upgrade step adds its include to configure.zcml."""
-        # First upgrade step
-        run_copier(
-            upgrade_step_template,
-            addon_dir,
-            data={
-                "upgrade_step_title": "Add catalog index",
-                "source_version": "1000",
-                "destination_version": "1001",
-            },
+        zcml = addon_dir / PKG / "configure.zcml"
+        lines = [line for line in zcml.read_text().splitlines() if "HiddenProfiles" not in line]
+        zcml.write_text("\n".join(lines) + "\n")
+
+        result = add_step(
+            addon_dir, upgrade_step_template, upgrade_step_import_steps="[catalog]"
         )
 
-        # Second upgrade step
-        run_copier(
-            upgrade_step_template,
-            addon_dir,
-            data={
-                "upgrade_step_title": "Migrate content",
-                "source_version": "1001",
-                "destination_version": "1002",
-            },
-        )
+        assert result.returncode == 0, result.stderr
+        assert 'factory=".setuphandlers.HiddenProfiles"' in zcml.read_text()
 
-        zcml = addon_dir / "src/my/pkg/upgrades/configure.zcml"
-        assert_file_exists(zcml, content_contains=[
-            '<include file="1001.zcml" />',
-            '<include file="1002.zcml" />',
-        ])
-
-    def test_second_step_creates_separate_files(
-        self, addon_dir, upgrade_step_template
+    def test_python_only_step_leaves_setuphandlers_alone(
+        self, old_addon, upgrade_step_template
     ):
-        """Each upgrade step gets its own handler, zcml, and profile dir."""
-        run_copier(
-            upgrade_step_template,
-            addon_dir,
-            data={
-                "upgrade_step_title": "Add catalog index",
-                "source_version": "1000",
-                "destination_version": "1001",
-            },
-        )
-        run_copier(
-            upgrade_step_template,
-            addon_dir,
-            data={
-                "upgrade_step_title": "Migrate content",
-                "source_version": "1001",
-                "destination_version": "1002",
-            },
-        )
-
-        handler1 = addon_dir / "src/my/pkg/upgrades/v1001.py"
-        handler2 = addon_dir / "src/my/pkg/upgrades/v1002.py"
-        assert_file_exists(handler1, content_contains="def upgrade")
-        assert_file_exists(handler2, content_contains="def upgrade")
-
-        step_zcml1 = addon_dir / "src/my/pkg/upgrades/1001.zcml"
-        step_zcml2 = addon_dir / "src/my/pkg/upgrades/1002.zcml"
-        assert_file_exists(step_zcml1, content_contains='destination="1001"')
-        assert_file_exists(step_zcml2, content_contains='destination="1002"')
-
-        assert (addon_dir / "src/my/pkg/upgrades/1001/metadata.txt").exists()
-        assert (addon_dir / "src/my/pkg/upgrades/1002/metadata.txt").exists()
-
-    def test_metadata_version_is_latest(self, addon_dir, upgrade_step_template):
-        """After multiple steps, metadata.xml has the latest version."""
-        run_copier(
-            upgrade_step_template,
-            addon_dir,
-            data={
-                "upgrade_step_title": "Add catalog index",
-                "source_version": "1000",
-                "destination_version": "1001",
-            },
-        )
-        run_copier(
-            upgrade_step_template,
-            addon_dir,
-            data={
-                "upgrade_step_title": "Migrate content",
-                "source_version": "1001",
-                "destination_version": "1002",
-            },
-        )
-
-        metadata = addon_dir / "src/my/pkg/profiles/default/metadata.xml"
-        assert_file_exists(metadata, content_contains="<version>1002</version>")
+        assert add_step(old_addon, upgrade_step_template).returncode == 0
+        assert (old_addon / PKG / "setuphandlers.py").read_text() == self.SETUPHANDLERS
 
 
 @pytest.mark.integration
 class TestUpgradeStepInPloneSite:
-    """End-to-end: install addon in a real Plone site, then run the upgrade.
+    """End-to-end: the generated add-on's own tests pass in a real Plone site.
 
-    Generates a backend_addon, applies the upgrade_step template, runs
-    ``uv sync`` to install Plone, then drives a pytest-based integration
-    test inside the generated addon that:
-
-    1. Boots a Plone test layer (which installs the addon at metadata
-       version 1001 — the post-upgrade state).
-    2. Rolls ``portal_setup``'s recorded version back to ``1000`` to
-       simulate an addon that was installed before the upgrade step
-       existed (creating the "starting profile" state).
-    3. Calls ``portal_setup.upgradeProfile()`` to apply pending steps.
-    4. Asserts the recorded profile version was bumped to ``1001``.
-
-    Slow (downloads Plone on first run). Opt in with ``pytest -m integration``.
+    Adds a registry step (1001) and a Python-only step (1002), then runs the
+    generated tests plus a check that the upgrade profile is hidden from the
+    add-ons control panel. Slow; opt in with ``pytest -m integration``.
     """
 
-    def test_upgrade_bumps_profile_version_in_plone_site(
-        self, temp_dir, backend_addon_template, upgrade_step_template
-    ):
+    def test_generated_tests_pass(self, temp_dir, backend_addon_template, upgrade_step_template):
         if shutil.which("uv") is None:
             pytest.skip("uv is required to run the Plone integration test")
 
         addon_dir = temp_dir / "myaddon"
-        package_name = "collective.upgradetest"
-
-        # 1. Generate parent addon (metadata.xml version = 1000).
         result = run_copier(
             backend_addon_template,
             addon_dir,
-            data={"package_name": package_name},
+            data={"package_name": "collective.upgradetest"},
         )
         assert result.returncode == 0, f"backend_addon failed: {result.stderr}"
 
-        # 2. Generate upgrade step 1000 -> 1001 (bumps metadata.xml to 1001,
-        #    registers handler + per-step ZCML in the addon's upgrades/).
-        result = run_copier(
-            upgrade_step_template,
+        result = add_step(
             addon_dir,
-            data={
-                "upgrade_step_title": "Bump to 1001",
-                "upgrade_step_description": "Test upgrade step",
-                "source_version": "1000",
-                "destination_version": "1001",
-            },
+            upgrade_step_template,
+            upgrade_step_title="Register settings",
+            upgrade_step_import_steps="[plone.app.registry]",
         )
-        assert result.returncode == 0, f"upgrade_step failed: {result.stderr}"
+        assert result.returncode == 0, f"upgrade_step 1001 failed: {result.stderr}"
+        result = add_step(addon_dir, upgrade_step_template, upgrade_step_title="Clean up")
+        assert result.returncode == 0, f"upgrade_step 1002 failed: {result.stderr}"
 
-        # 3. Drop a Plone integration test alongside the generated tests.
-        plone_test = (
-            addon_dir
-            / "src/collective/upgradetest/tests/test_upgrade_integration.py"
-        )
-        plone_test.write_text(textwrap.dedent(f'''\
-            """Plone integration test for upgrade step 1000 -> 1001."""
-            from plone.app.testing import setRoles, TEST_USER_ID
+        tests_dir = addon_dir / "src/collective/upgradetest/tests"
+        (tests_dir / "test_hidden_upgrades.py").write_text(textwrap.dedent('''\
+            from zope.component import getMultiAdapter
 
 
-            class TestUpgradeProfileVersion:
-                """Verify portal_setup bumps the profile version after upgrade."""
-
-                profile_id = "{package_name}:default"
-
-                def test_upgrade_step_bumps_profile_version(self, integration):
-                    portal = integration["portal"]
-                    setRoles(portal, TEST_USER_ID, ["Manager"])
-                    setup_tool = portal.portal_setup
-
-                    # Layer setUp already applied the default profile, so
-                    # the recorded version is the current metadata.xml (1001).
-                    # Simulate the pre-upgrade state by rolling it back to 1000.
-                    setup_tool.setLastVersionForProfile(self.profile_id, "1000")
-                    assert setup_tool.getLastVersionForProfile(
-                        self.profile_id
-                    ) == ("1000",)
-
-                    pending = setup_tool.listUpgrades(self.profile_id)
-                    assert pending, (
-                        "Expected at least one pending upgrade step "
-                        "from 1000 to 1001"
-                    )
-
-                    setup_tool.upgradeProfile(self.profile_id)
-
-                    assert setup_tool.getLastVersionForProfile(
-                        self.profile_id
-                    ) == ("1001",), (
-                        "Upgrade did not bump the profile version to 1001"
-                    )
+            def test_upgrade_profiles_hidden(integration):
+                panel = getMultiAdapter(
+                    (integration["portal"], integration["request"]),
+                    name="prefs_install_products_form",
+                )
+                addons = panel.get_addons()
+                assert "collective.upgradetest" in addons
+                assert "collective.upgradetest.upgrades" not in addons
         '''))
 
-        # 4. Install Plone + addon deps in the generated package.
         sync = subprocess.run(
             ["uv", "sync", "--extra", "test"],
             cwd=addon_dir,
@@ -468,13 +333,8 @@ class TestUpgradeStepInPloneSite:
             f"uv sync failed:\nSTDOUT:\n{sync.stdout}\nSTDERR:\n{sync.stderr}"
         )
 
-        # 5. Run the integration test inside the generated addon.
         run = subprocess.run(
-            [
-                "uv", "run", "pytest",
-                "src/collective/upgradetest/tests/test_upgrade_integration.py",
-                "-v", "--tb=short",
-            ],
+            ["uv", "run", "pytest", str(tests_dir), "-v", "--tb=short"],
             cwd=addon_dir,
             env=plone_subprocess_env(),
             capture_output=True,
@@ -482,6 +342,12 @@ class TestUpgradeStepInPloneSite:
             timeout=600,
         )
         assert run.returncode == 0, (
-            "Plone integration test failed:\n"
-            f"STDOUT:\n{run.stdout}\nSTDERR:\n{run.stderr}"
+            f"Plone tests failed:\nSTDOUT:\n{run.stdout}\nSTDERR:\n{run.stderr}"
         )
+        for name in (
+            "test_upgrade_step_1001.py",
+            "test_upgrade_step_1002.py",
+            "test_profile_version_matches_last_upgrade",
+            "test_upgrade_profiles_hidden",
+        ):
+            assert name in run.stdout

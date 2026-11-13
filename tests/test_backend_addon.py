@@ -116,6 +116,43 @@ class TestBackendAddonIsolated:
         zcml = temp_dir / "mypackage/src/collective/mypackage/configure.zcml"
         assert_file_exists(zcml, content_contains="<configure")
 
+    def test_hides_uninstall_and_upgrade_profiles(self, temp_dir, backend_addon_template):
+        run_copier(
+            backend_addon_template,
+            temp_dir / "mypackage",
+            data={"package_name": "collective.mypackage"},
+        )
+
+        pkg = temp_dir / "mypackage/src/collective/mypackage"
+        assert_file_exists(
+            pkg / "configure.zcml",
+            content_contains='<utility factory=".setuphandlers.HiddenProfiles"',
+        )
+        assert_file_exists(
+            pkg / "setuphandlers.py",
+            content_contains=[
+                '"collective.mypackage:uninstall"',
+                "def getNonInstallableProducts(self):",
+                '"collective.mypackage.upgrades"',
+            ],
+        )
+
+    def test_profile_version_test_is_evergreen(self, temp_dir, backend_addon_template):
+        run_copier(
+            backend_addon_template,
+            temp_dir / "mypackage",
+            data={"package_name": "collective.mypackage"},
+        )
+
+        test_setup = temp_dir / "mypackage/src/collective/mypackage/tests/test_setup.py"
+        assert_file_exists(
+            test_setup,
+            content_contains=[
+                "def test_profile_version_matches_last_upgrade(self):",
+                "normalize_version",
+            ],
+        )
+
     def test_creates_testing_module(self, temp_dir, backend_addon_template):
         """Backend addon creates testing.py module."""
         run_copier(

@@ -6,6 +6,11 @@ _plonecli:
   type: sub
   parent: backend_addon
   description: "Add a GenericSetup upgrade step"
+  commit_message: "Add upgrade step {destination_version}: {upgrade_step_title}"
+
+# Shared across steps: render once, never conflict on later runs.
+_skip_if_exists:
+  - "src/**/upgrades/__init__.py"
 
 _jinja_extensions:
   - copier_template_extensions.TemplateExtensionLoader
@@ -34,9 +39,9 @@ _tasks:
       - "post_copy"
       - "{{ _copier_conf.dst_path }}"
       - "{{ upgrade_step_title }}"
-      - "{{ upgrade_step_description }}"
       - "{{ source_version }}"
       - "{{ destination_version }}"
+      - "{{ upgrade_step_import_steps | join(',') }}"
 
 # Upgrade step title
 upgrade_step_title:
@@ -69,3 +74,29 @@ destination_version:
   type: str
   help: "Destination profile version (new version)"
   default: "{{ (source_version | int + 1) | string }}"
+  validator: >-
+    {% set existing = existing_upgrade_files | default({}) %}{% if destination_version in existing %}{{ existing[destination_version] }} already exists; choose another destination_version{% endif %}
+
+upgrade_step_import_steps:
+  type: str
+  multiselect: true
+  help: >-
+    GenericSetup import steps to run from the step's own profile
+    (upgrades/<destination_version>/). Select none for a Python-only step.
+  choices:
+    "registry.xml (plone.app.registry)": plone.app.registry
+    "types.xml, types/ (typeinfo)": typeinfo
+    "workflows.xml (workflow)": workflow
+    "catalog.xml (catalog)": catalog
+    "rolemap.xml (rolemap)": rolemap
+    "controlpanel.xml (controlpanel)": controlpanel
+    "actions.xml (actions)": actions
+    "browserlayer.xml (browserlayer)": browserlayer
+    "componentregistry.xml (componentregistry)": componentregistry
+    "portlets.xml (portlets)": portlets
+    "viewlets.xml (viewlets)": viewlets
+    "propertiestool.xml (propertiestool)": propertiestool
+    "repositorytool.xml (repositorytool)": repositorytool
+    "difftool.xml (difftool)": difftool
+    "theme.xml (plone.app.theming)": plone.app.theming
+  default: []

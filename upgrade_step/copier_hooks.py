@@ -12,6 +12,7 @@ from hooks.addon_context import (  # noqa: E402
     resolve_post_copy_context,
 )
 from hooks.git_check import warn_git_unclean  # noqa: E402
+from utils.hidden_profiles import hide_product, register_hidden_profiles  # noqa: E402
 from utils.xml_updater import (  # noqa: E402
     MetadataXMLUpdater,
     ParentZCMLUpdater,
@@ -38,11 +39,11 @@ def validate(dest_path: str) -> None:
 def post_copy(
     dest_path: str,
     upgrade_step_title: str,
-    upgrade_step_description: str,
     source_version: str,
     destination_version: str,
+    import_steps: str,
 ) -> None:
-    """Wire the new upgrade step files into the addon configuration.
+    """Wire the new upgrade step into the addon and print a summary.
 
     Works for both modern (pyproject.toml) and legacy (bobtemplate.cfg /
     setup.py) packages.
@@ -59,50 +60,75 @@ def post_copy(
         print("Warning: could not determine package_folder. Skipping updates.")
         return
 
-    # Add include for per-step ZCML in upgrades/configure.zcml
-    zcml_path = ctx.dest / f"src/{ctx.package_folder}/upgrades/configure.zcml"
-    zcml_updater = UpgradeZCMLUpdater(zcml_path)
+    steps = [step for step in import_steps.split(",") if step]
+    pkg = ctx.dest / "src" / ctx.package_folder
+    created = [
+        f"upgrades/v{destination_version}.py",
+        f"upgrades/{destination_version}.zcml",
+        f"tests/test_upgrade_step_{destination_version}.py",
+    ]
+    if steps:
+        created.append(f"upgrades/{destination_version}/")
+    updated = []
+    notes = []
+
+    zcml_updater = UpgradeZCMLUpdater(pkg / "upgrades/configure.zcml")
     zcml_updater.create_if_missing(ctx.package_name or "package")
     step_zcml = f"{destination_version}.zcml"
     if not zcml_updater.has_file_include(step_zcml):
         zcml_updater.add_file_include(step_zcml)
         zcml_updater.save()
-        print(
-            f"Updated {zcml_path.relative_to(ctx.dest)} with "
-            f'<include file="{step_zcml}" />.'
-        )
-    else:
-        print(
-            f'Include for "{step_zcml}" already exists in '
-            f"{zcml_path.relative_to(ctx.dest)}."
-        )
+        updated.append(f'upgrades/configure.zcml: <include file="{step_zcml}" />')
 
-    # Add include for upgrades subpackage in parent configure.zcml
-    parent_zcml = ctx.dest / f"src/{ctx.package_folder}/configure.zcml"
+    parent_zcml = pkg / "configure.zcml"
     if parent_zcml.exists():
         parent_updater = ParentZCMLUpdater(parent_zcml)
         if not parent_updater.has_include(".upgrades"):
             parent_updater.add_include(".upgrades")
             parent_updater.save()
-            print(
-                'Added <include package=".upgrades" /> to parent '
-                "configure.zcml."
-            )
+            updated.append('configure.zcml: <include package=".upgrades" />')
 
-    # Bump profile version in metadata.xml
-    metadata_path = (
-        ctx.dest / f"src/{ctx.package_folder}/profiles/default/metadata.xml"
-    )
-    metadata_updater = MetadataXMLUpdater(metadata_path)
+    metadata_updater = MetadataXMLUpdater(pkg / "profiles/default/metadata.xml")
     current = metadata_updater.get_version()
     if current and current != destination_version:
         metadata_updater.set_version(destination_version)
-        print(
-            f"Updated profile version in metadata.xml: "
-            f"{current} -> {destination_version}."
-        )
+        updated.append(f"profiles/default/metadata.xml: {current} -> {destination_version}")
     elif not current:
-        print("Warning: Could not read current profile version from metadata.xml.")
+        notes.append("could not read the version from profiles/default/metadata.xml")
+
+    if steps:
+        upgrades_product = f"{ctx.package_name}.upgrades"
+        hidden = hide_product(pkg / "setuphandlers.py", upgrades_product)
+        if hidden == "added":
+            updated.append(f"setuphandlers.py: {upgrades_product} hidden")
+        if hidden and register_hidden_profiles(parent_zcml, ctx.package_name):
+            updated.append("configure.zcml: HiddenProfiles utility registered")
+        if not hidden:
+            notes.append(
+                f"add {upgrades_product!r} to HiddenProfiles.getNonInstallableProducts "
+                "in setuphandlers.py"
+            )
+        notes.append(
+            f"put the XML for {', '.join(steps)} into upgrades/{destination_version}/"
+        )
+    notes.append(
+        f"replace the TODO in tests/test_upgrade_step_{destination_version}.py "
+        "with a check of the step's effect"
+    )
+
+    print_summary(
+        f"Upgrade step {source_version} -> {destination_version}: {upgrade_step_title}",
+        created,
+        updated,
+        notes,
+    )
+
+
+def print_summary(title: str, created: list, updated: list, notes: list) -> None:
+    print(f"\n{title}")
+    for label, items in (("created", created), ("updated", updated), ("todo", notes)):
+        for item in items:
+            print(f"  {label:8} {item}")
 
 
 def main():
@@ -124,11 +150,11 @@ def main():
         elif command == "post_copy":
             if len(sys.argv) < 7:
                 print(
-                    "Usage: tasks.py post_copy <dest_path> <title> <description> "
-                    "<source_version> <destination_version>"
+                    "Usage: tasks.py post_copy <dest_path> <title> "
+                    "<source_version> <destination_version> <import_steps>"
                 )
                 sys.exit(1)
-            post_copy(sys.argv[2], sys.argv[3], sys.argv[4], sys.argv[5], sys.argv[6])
+            post_copy(*sys.argv[2:7])
 
         else:
             print(f"Unknown command: {command}")
